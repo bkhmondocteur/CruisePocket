@@ -662,8 +662,16 @@ export const CompanyDashboard: React.FC = () => {
                         <div className="font-bold text-white text-sm">
                           {cand.civility} {cand.last_name} {cand.first_name}
                         </div>
-                        <div className="text-slate-400 text-[11px]">
-                          {cand.position} • {cand.cruise_company}
+                        <div className="text-slate-400 text-[11px] flex items-center gap-1.5 flex-wrap mt-0.5">
+                          <span>{cand.position} • {cand.cruise_company}</span>
+                          <span>•</span>
+                          <span className={`px-1.5 py-0.5 rounded border text-[10px] font-medium ${
+                            cand.contract_type === 'Renouvellement de contrat' || cand.contract_type === 'Contrat intermédiaire'
+                              ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
+                              : 'bg-slate-900 border-slate-800 text-slate-300'
+                          }`}>
+                            {cand.contract_type}
+                          </span>
                         </div>
                       </div>
 

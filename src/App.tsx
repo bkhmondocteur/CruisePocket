@@ -29,7 +29,7 @@ export const App: React.FC = () => {
       <footer className="py-4 px-6 border-t border-slate-900 glass-panel text-xs text-slate-500">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <img src={`${import.meta.env.BASE_URL}logo.png`} alt="CruisePocket" className="w-5 h-5 object-contain" />
+            <img src={`${import.meta.env.BASE_URL}logo.png`} alt="CruisePocket" className="w-[26px] h-[26px] object-contain" />
             <span className="font-bold text-slate-300">CruisePocket</span>
             <span>• Plateforme Métier Médicale & Administrative des Gens de Mer</span>
           </div>

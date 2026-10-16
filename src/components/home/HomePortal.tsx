@@ -76,7 +76,7 @@ export const HomePortal: React.FC = () => {
             <img 
               src={`${import.meta.env.BASE_URL}logo.png`} 
               alt="CruisePocket Official Logo" 
-              className="w-32 h-32 sm:w-36 sm:h-36 object-contain drop-shadow-2xl transition-transform transform group-hover:scale-105 duration-300"
+              className="w-[168px] h-[168px] sm:w-[188px] sm:h-[188px] object-contain drop-shadow-2xl transition-transform transform group-hover:scale-105 duration-300"
             />
           </div>
           
@@ -198,7 +198,7 @@ export const HomePortal: React.FC = () => {
           <img 
             src={`${import.meta.env.BASE_URL}logo.png`} 
             alt="CruisePocket Logo" 
-            className="w-20 h-20 object-contain mx-auto drop-shadow-lg"
+            className="w-[104px] h-[104px] object-contain mx-auto drop-shadow-lg"
           />
           <div>
             <span className="text-[10px] font-bold tracking-wider uppercase text-slate-400">

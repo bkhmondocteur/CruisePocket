@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-slate-950">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CruisePocket - Keygen Autonome & Dissocié</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            maritime: {
+              400: '#38bdf8',
+              500: '#0284c7',
+              600: '#0369a1',
+              700: '#075985',
+              800: '#0c4a6e',
+              900: '#082f49',
+              950: '#041c2c',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+  </style>
+</head>
+<body class="min-h-full bg-slate-950 text-slate-100 flex flex-col antialiased selection:bg-cyan-500 selection:text-white p-4 sm:p-8">
+
+  <!-- Conteneur Principal -->
+  <div class="max-w-4xl mx-auto w-full space-y-6">
+
+    <!-- En-tête -->
+    <header class="glass-panel rounded-3xl p-6 sm:p-8 border-l-4 border-cyan-500 shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+      <div class="space-y-1">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 mb-2">
+          <span>⚓ Outil Administrateur Indépendant</span>
+          <span class="text-slate-500">•</span>
+          <span class="text-amber-400">Dissocié de l'Application</span>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
+          Cruise<span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">Pocket</span> Keygen
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-400">
+          Générateur de clés de licence d'authentification pour Médecins Agréés et Sociétés de Service.
+        </p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div class="px-4 py-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-center">
+          <div class="text-[10px] uppercase font-bold text-slate-500">Mode</div>
+          <div class="text-xs font-mono font-bold text-emerald-400">100% Hors-Ligne</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Onglets de Sélection : Médecin vs Société -->
+    <div class="flex items-center p-1.5 rounded-2xl bg-slate-900/90 border border-slate-800 max-w-md mx-auto">
+      <button
+        id="tab-medecin"
+        onclick="switchTab('medecin')"
+        class="flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm"
+      >
+        <span>🩺 Licence Médecin</span>
+      </button>
+
+      <button
+        id="tab-societe"
+        onclick="switchTab('societe')"
+        class="flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 text-slate-400 hover:text-white"
+      >
+        <span>🏢 Licence Société</span>
+      </button>
+    </div>
+
+    <!-- FORMULAIRE MÉDECIN -->
+    <div id="form-medecin" class="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-2xl space-y-6">
+      <div class="border-b border-slate-800/80 pb-4">
+        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+          <span class="text-emerald-400">Générateur Clé Médecin Agréé</span>
+        </h2>
+        <p class="text-xs text-slate-400 mt-1">
+          Paramètres requis par le protocole maritime : Nom/Prénom, Numéro d'Ordre et Lieu d'exercice.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5">Nom et Prénom du Médecin *</label>
+          <input
+            type="text"
+            id="doc-name"
+            placeholder="Ex: Dr. Jean-Marc FERRARI"
+            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5">Numéro d'Ordre *</label>
+          <input
+            type="text"
+            id="doc-order"
+            placeholder="Ex: 13/98745"
+            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5">Lieu d'Exercice *</label>
+          <input
+            type="text"
+            id="doc-location"
+            placeholder="Ex: Marseille Port Autonome"
+            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+        </div>
+      </div>
+
+      <div class="pt-2">
+        <button
+          onclick="generateDoctor()"
+          class="w-full py-3.5 px-4 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-lg shadow-emerald-600/20 transition-all transform active:scale-[0.99] flex items-center justify-center gap-2"
+        >
+          <span>Générer la Clé de Licence Médecin</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- FORMULAIRE SOCIÉTÉ -->
+    <div id="form-societe" class="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-2xl space-y-6 hidden">
+      <div class="border-b border-slate-800/80 pb-4">
+        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+          <span class="text-cyan-400">Générateur Clé Société de Service</span>
+        </h2>
+        <p class="text-xs text-slate-400 mt-1">
+          Paramètres requis : Nom de la société, Nom/Prénom du responsable, Téléphone et Localisation.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5">Nom de la Société *</label>
+          <input
+            type="text"
+            id="soc-name"
+            placeholder="Ex: TransMed Crewing Services"
+            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+          />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5">Nom / Prénom du Responsable *</label>
+          <input
+            type="text"
+            id="soc-manager"
+            placeholder="Ex: Claire Beauchamp"
+            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+          />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5">Téléphone *</label>
+          <input
+            type="text"
+            id="soc-phone"
+            placeholder="Ex: +216 71 00 00 00"
+            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+          />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5">Localisation (Ville / Port) *</label>
+          <input
+            type="text"
+            id="soc-location"
+            placeholder="Ex: Tunis La Goulette"
+            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+          />
+        </div>
+      </div>
+
+      <div class="pt-2">
+        <button
+          onclick="generateCompany()"
+          class="w-full py-3.5 px-4 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-maritime-600 via-cyan-600 to-emerald-600 hover:from-maritime-500 hover:to-emerald-500 shadow-lg shadow-cyan-600/20 transition-all transform active:scale-[0.99] flex items-center justify-center gap-2"
+        >
+          <span>Générer la Clé de Licence Société</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- RÉSULTAT DE LA CLÉ GÉNÉRÉE -->
+    <div id="result-box" class="glass-panel rounded-3xl p-6 sm:p-8 border border-emerald-500/50 shadow-2xl space-y-4 hidden animate-fadeIn">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2 text-emerald-400 font-bold text-sm">
+          <span>✓ Clé Officielle Générée</span>
+        </div>
+        <span id="result-role-badge" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-200"></span>
+      </div>
+
+      <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="space-y-1">
+          <div class="text-[10px] uppercase font-bold text-slate-500">Clé de Licence (Token de Connexion)</div>
+          <div id="result-key" class="text-lg sm:text-xl font-mono font-extrabold text-cyan-300 tracking-wider select-all"></div>
+        </div>
+
+        <button
+          id="copy-btn"
+          onclick="copyResultKey()"
+          class="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500 text-white font-bold text-xs shadow-md transition-all shrink-0 flex items-center justify-center gap-2"
+        >
+          <span id="copy-text">Copier la Clé</span>
+        </button>
+      </div>
+
+      <div id="result-details" class="p-4 rounded-xl bg-slate-900/50 border border-slate-800/80 text-xs text-slate-300 grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
+
+      <div class="text-[11px] text-slate-400 pt-2 border-t border-slate-800/80">
+        💡 Transmettez cette clé au titulaire : elle lui servira de token de connexion unique à l'ouverture de l'application CruisePocket.
+      </div>
+    </div>
+
+    <!-- VÉRIFICATEUR DE CLÉ -->
+    <div class="glass-panel rounded-3xl p-6 border border-slate-800 space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">
+          🔍 Testeur & Vérificateur de Clé
+        </h3>
+        <span class="text-[10px] text-slate-500">Valide la structure et le rôle</span>
+      </div>
+
+      <div class="flex gap-2">
+        <input
+          type="text"
+          id="test-key-input"
+          placeholder="Collez une clé de licence pour tester (ex: CP-MED-... ou CP-SOC-...)"
+          class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs font-mono text-cyan-300 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+        />
+        <button
+          onclick="verifyKey()"
+          class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white font-bold text-xs transition-all"
+        >
+          Vérifier
+        </button>
+      </div>
+
+      <div id="verify-result" class="text-xs hidden p-3 rounded-xl"></div>
+    </div>
+
+  </div>
+
+  <script>
+    // Algorithmes de hachage et checksum identiques à CruisePocket
+    function hashString(str) {
+      let hash = 5381;
+      for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) + hash) + str.charCodeAt(i);
+        hash = hash & hash;
+      }
+      return Math.abs(hash).toString(16).toUpperCase().padStart(8, '0');
+    }
+
+    function generateChecksum(prefix, seed) {
+      const combined = `${prefix}:${seed}:CRUISE_POCKET_SALT_2026`;
+      return hashString(combined).substring(0, 4);
+    }
+
+    function switchTab(role) {
+      const tabMed = document.getElementById('tab-medecin');
+      const tabSoc = document.getElementById('tab-societe');
+      const formMed = document.getElementById('form-medecin');
+      const formSoc = document.getElementById('form-societe');
+
+      if (role === 'medecin') {
+        tabMed.className = "flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm";
+        tabSoc.className = "flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 text-slate-400 hover:text-white";
+        formMed.classList.remove('hidden');
+        formSoc.classList.add('hidden');
+      } else {
+        tabSoc.className = "flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-sm";
+        tabMed.className = "flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 text-slate-400 hover:text-white";
+        formSoc.classList.remove('hidden');
+        formMed.classList.add('hidden');
+      }
+    }
+
+    function generateDoctor() {
+      const name = document.getElementById('doc-name').value.trim();
+      const order = document.getElementById('doc-order').value.trim();
+      const location = document.getElementById('doc-location').value.trim();
+
+      if (!name || !order || !location) {
+        alert("Veuillez renseigner les 3 champs : Nom/Prénom, Numéro d'Ordre et Lieu.");
+        return;
+      }
+
+      const cleanOrder = order.replace(/[^a-zA-Z0-9]/g, '');
+      const orderSlug = cleanOrder.substring(0, 5).toUpperCase().padEnd(5, '0');
+      const rawData = `${name.toLowerCase()}|${cleanOrder}|${location.toLowerCase()}`;
+      const coreHash = hashString(rawData).substring(0, 6);
+      const checksum = generateChecksum('CP-MED', `${orderSlug}-${coreHash}`);
+
+      const key = `CP-MED-${orderSlug}-${coreHash}-${checksum}`;
+
+      showResult(key, 'Médecin Agréé', [
+        { label: 'Titulaire', val: name },
+        { label: "N° d'Ordre", val: order },
+        { label: 'Lieu', val: location },
+        { label: 'Devise', val: 'DT (Tunisie)' }
+      ]);
+    }
+
+    function generateCompany() {
+      const name = document.getElementById('soc-name').value.trim();
+      const manager = document.getElementById('soc-manager').value.trim();
+      const phone = document.getElementById('soc-phone').value.trim();
+      const location = document.getElementById('soc-location').value.trim();
+
+      if (!name || !manager || !phone || !location) {
+        alert("Veuillez renseigner tous les champs de la société.");
+        return;
+      }
+
+      const locSlug = (location.replace(/[^a-zA-Z]/g, '').substring(0, 4) || 'PORT').toUpperCase().padEnd(4, 'X');
+      const rawData = `${name.toLowerCase()}|${manager.toLowerCase()}|${phone}|${location.toLowerCase()}`;
+      const coreHash = hashString(rawData).substring(0, 6);
+      const checksum = generateChecksum('CP-SOC', `${locSlug}-${coreHash}`);
+
+      const key = `CP-SOC-${locSlug}-${coreHash}-${checksum}`;
+
+      showResult(key, 'Société de Service', [
+        { label: 'Société', val: name },
+        { label: 'Responsable', val: manager },
+        { label: 'Téléphone', val: phone },
+        { label: 'Localisation', val: location }
+      ]);
+    }
+
+    function showResult(key, roleName, details) {
+      document.getElementById('result-key').innerText = key;
+      document.getElementById('result-role-badge').innerText = roleName;
+
+      const detailsDiv = document.getElementById('result-details');
+      detailsDiv.innerHTML = details.map(d => `
+        <div>
+          <span class="text-slate-500 block text-[10px]">${d.label}</span>
+          <span class="font-semibold text-white">${d.val}</span>
+        </div>
+      `).join('');
+
+      document.getElementById('result-box').classList.remove('hidden');
+      document.getElementById('result-box').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function copyResultKey() {
+      const key = document.getElementById('result-key').innerText;
+      navigator.clipboard.writeText(key).then(() => {
+        document.getElementById('copy-text').innerText = '✓ Clé Copiée !';
+        setTimeout(() => {
+          document.getElementById('copy-text').innerText = 'Copier la Clé';
+        }, 3000);
+      });
+    }
+
+    function verifyKey() {
+      const input = document.getElementById('test-key-input').value.trim().toUpperCase();
+      const resDiv = document.getElementById('verify-result');
+      resDiv.classList.remove('hidden');
+
+      if (!input) {
+        resDiv.className = 'text-xs p-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-400';
+        resDiv.innerText = 'Veuillez saisir une clé à vérifier.';
+        return;
+      }
+
+      if (input.startsWith('CP-MED-')) {
+        const parts = input.split('-');
+        if (parts.length >= 4) {
+          resDiv.className = 'text-xs p-3 rounded-xl bg-emerald-950/80 border border-emerald-500/60 text-emerald-300';
+          resDiv.innerHTML = `✅ <strong>Clé Médecin Valide :</strong> Format conforme pour connexion Médecin (Identifiant Ordre : ${parts[2] || 'OK'}).`;
+          return;
+        }
+      } else if (input.startsWith('CP-SOC-')) {
+        const parts = input.split('-');
+        if (parts.length >= 4) {
+          resDiv.className = 'text-xs p-3 rounded-xl bg-cyan-950/80 border border-cyan-500/60 text-cyan-300';
+          resDiv.innerHTML = `✅ <strong>Clé Société Valide :</strong> Format conforme pour connexion Société (Zone : ${parts[2] || 'OK'}).`;
+          return;
+        }
+      }
+
+      resDiv.className = 'text-xs p-3 rounded-xl bg-rose-950/80 border border-rose-500/60 text-rose-300';
+      resDiv.innerHTML = '❌ <strong>Format non reconnu :</strong> La clé doit débuter par CP-MED- ou CP-SOC- et comporter ses 4 segments de sécurité.';
+    }
+  </script>
+
+</body>
+</html>

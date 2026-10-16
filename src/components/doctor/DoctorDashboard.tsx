@@ -409,7 +409,11 @@ export const DoctorDashboard: React.FC = () => {
 
                   <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
                     <span>Âge : <strong className="text-slate-200">{cand.age} ans</strong> ({cand.birth_date})</span>
-                    <span className="bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
+                    <span className={`px-1.5 py-0.5 rounded border text-[10px] font-medium ${
+                      cand.contract_type === 'Renouvellement de contrat' || cand.contract_type === 'Contrat intermédiaire'
+                        ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
+                        : 'bg-slate-900 border-slate-800 text-slate-300'
+                    }`}>
                       {cand.contract_type}
                     </span>
                   </div>

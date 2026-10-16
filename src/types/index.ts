@@ -38,6 +38,7 @@ export interface Candidate {
   doctor_name?: string;
   is_archived?: boolean;
   archived_at?: string;
+  reactivated_at?: string;
   passport_file_id?: string;
   currency?: 'DT';
   created_at: string;

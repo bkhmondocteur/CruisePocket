@@ -71,7 +71,7 @@ export const Header: React.FC = () => {
           <img 
             src={`${import.meta.env.BASE_URL}logo.png`} 
             alt="CruisePocket Logo" 
-            className="w-11 h-11 object-contain drop-shadow-md"
+            className="w-[58px] h-[58px] object-contain drop-shadow-md"
           />
           <div>
             <div className="flex items-center gap-2">

@@ -163,23 +163,40 @@ export const dataService = {
     }
 
     // Évaluation automatique de l'archivage (> 1 mois / 30 jours)
-    // Règle : les dossiers de plus d'un mois sont archivés, sauf renouvellement de contrat ou contrat intermédiaire
+    // Règle générale : les dossiers de plus d'un mois sont archivés.
+    // Exception règle métier : Si le type de contrat est (ou est passé en) « Renouvellement de contrat » 
+    // ou « Contrat intermédiaire » (Visite intermédiaire), le dossier n'est PAS réarchivé et reste 
+    // définitivement réactivé dans les dossiers opérationnels en cours jusqu'à ce que la date dépasse de nouveau les 30 jours.
     const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
     const now = Date.now();
 
     const evaluated = rawList.map((c) => {
-      const createdTime = new Date(c.created_at).getTime();
-      const isOlderThanMonth = now - createdTime > ONE_MONTH_MS;
       const isRenewalOrIntermediate = 
         c.contract_type === 'Renouvellement de contrat' || 
         c.contract_type === 'Contrat intermédiaire';
 
+      // Date de référence pour le cycle de 30 jours : 
+      // Si reactivated_at existe (suite à réactivation pour renouvellement/visite intermédiaire), on s'y réfère, sinon created_at.
+      const referenceDateStr = c.reactivated_at || c.created_at;
+      const referenceTime = new Date(referenceDateStr).getTime();
+      const isOlderThan30Days = (now - referenceTime) > ONE_MONTH_MS;
+
       let is_archived = c.is_archived;
-      if (is_archived === undefined) {
-        is_archived = isOlderThanMonth && !isRenewalOrIntermediate;
-      } else if (isRenewalOrIntermediate) {
-        // En cas de renouvellement ou contrat intermédiaire, le dossier est actif
-        is_archived = false;
+
+      if (isRenewalOrIntermediate) {
+        // Règle métier : Reste réactivé dans les dossiers opérationnels jusqu'à ce que la date dépasse de nouveau les 30 jours
+        if (isOlderThan30Days) {
+          is_archived = true;
+        } else {
+          is_archived = false;
+        }
+      } else {
+        // Dossier standard (ex: Nouveau contrat) : archivé dès qu'il dépasse 30 jours
+        if (isOlderThan30Days) {
+          is_archived = true;
+        } else if (is_archived === undefined) {
+          is_archived = false;
+        }
       }
 
       return {
@@ -253,17 +270,31 @@ export const dataService = {
     const index = existing.findIndex(c => c.id === id);
     if (index === -1) return null;
 
-    // Si le contrat devient Renouvellement ou Contrat Intermédiaire, désarchiver immédiatement
+    // Si le contrat devient Renouvellement ou Contrat Intermédiaire, ou en cas de réactivation
     let is_archived = updates.is_archived !== undefined ? updates.is_archived : existing[index].is_archived;
+    let reactivated_at = updates.reactivated_at !== undefined ? updates.reactivated_at : existing[index].reactivated_at;
+    let archived_at = updates.archived_at !== undefined ? updates.archived_at : existing[index].archived_at;
     const contractType = updates.contract_type || existing[index].contract_type;
-    if (contractType === 'Renouvellement de contrat' || contractType === 'Contrat intermédiaire') {
-      is_archived = false;
+    const isRenewalOrIntermediate = 
+      contractType === 'Renouvellement de contrat' || 
+      contractType === 'Contrat intermédiaire';
+
+    if (isRenewalOrIntermediate) {
+      // Si le dossier passe en renouvellement ou contrat intermédiaire, ou s'il est réactivé :
+      // On initialise son nouveau cycle opérationnel de 30 jours
+      if (existing[index].is_archived || updates.is_archived === false || updates.contract_type !== existing[index].contract_type) {
+        is_archived = false;
+        reactivated_at = updates.reactivated_at || new Date().toISOString();
+        archived_at = undefined;
+      }
     }
 
     existing[index] = {
       ...existing[index],
       ...updates,
       is_archived,
+      reactivated_at,
+      archived_at,
       updated_at: new Date().toISOString()
     };
 
@@ -321,20 +352,31 @@ export const dataService = {
 
   /**
    * Réarchivage à la sortie de consultation de la fiche candidat
-   * Règle : réarchivé de nouveau sauf en cas de renouvellement de contrat ou visite intermédiaire
+   * Règle générale : réarchivé de nouveau sauf en cas de renouvellement de contrat ou visite intermédiaire.
+   * Exception règle métier : Si le type de contrat est (ou est passé en) « Renouvellement de contrat »
+   * ou « Contrat intermédiaire » (Visite intermédiaire), le dossier n'est PAS réarchivé et reste
+   * définitivement réactivé dans vos dossiers opérationnels en cours jusqu'à ce que la date dépasse de nouveau les 30 jours.
    */
   async rearchiveCandidateOnExit(id: string): Promise<Candidate | null> {
     const existing = await this.getCandidates();
     const candidate = existing.find(c => c.id === id);
     if (!candidate) return null;
 
-    const isExempt = 
+    const isRenewalOrIntermediate = 
       candidate.contract_type === 'Renouvellement de contrat' || 
       candidate.contract_type === 'Contrat intermédiaire';
 
-    if (isExempt) {
-      // Reste actif de manière permanente !
-      return this.updateCandidate(id, { is_archived: false });
+    const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
+    const referenceDateStr = candidate.reactivated_at || candidate.created_at;
+    const referenceTime = new Date(referenceDateStr).getTime();
+    const isOlderThan30Days = (Date.now() - referenceTime) > ONE_MONTH_MS;
+
+    if (isRenewalOrIntermediate && !isOlderThan30Days) {
+      // Reste réactivé dans les dossiers opérationnels (cycle de 30 jours en cours)
+      return this.updateCandidate(id, { 
+        is_archived: false,
+        archived_at: undefined
+      });
     } else {
       // Réarchivé automatiquement à la sortie
       return this.updateCandidate(id, { 

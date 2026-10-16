@@ -55,6 +55,11 @@ export const CandidateFicheModal: React.FC<CandidateFicheModalProps> = ({
     formData.contract_type === 'Renouvellement de contrat' || 
     formData.contract_type === 'Contrat intermédiaire';
 
+  // Calcul du cycle d'activité (30 jours)
+  const referenceDateStr = formData.reactivated_at || formData.created_at;
+  const elapsedDays = Math.floor((Date.now() - new Date(referenceDateStr).getTime()) / (1000 * 60 * 60 * 24));
+  const remainingDays = Math.max(0, 30 - elapsedDays);
+
   // Sortie et fermeture de la fiche avec réarchivage conditionnel
   const handleExitFiche = async () => {
     if (!formData) {
@@ -67,25 +72,37 @@ export const CandidateFicheModal: React.FC<CandidateFicheModalProps> = ({
       // Si le dossier était archivé
       if (isInitiallyArchived) {
         if (isRenewalOrIntermediate) {
-          // EXCEPTION : renouvellement de contrat ou visite intermédiaire -> le dossier est réactivé !
+          // EXCEPTION RÈGLE MÉTIER : 
+          // Si le type de contrat est (ou est passé en) « Renouvellement de contrat » ou « Contrat intermédiaire » (Visite intermédiaire),
+          // le dossier n'est PAS réarchivé et reste définitivement réactivé dans vos dossiers opérationnels en cours :
+          // jusqu'à ce que la date dépasse de nouveau les 30 jours.
+          const nowIso = new Date().toISOString();
           await dataService.updateCandidate(formData.id, {
             ...formData,
             is_archived: false,
+            reactivated_at: nowIso,
             archived_at: undefined
           });
           alert(
-            `Dossier de ${formData.civility} ${formData.last_name} réactivé avec succès !\n\nEn raison du type de contrat (${formData.contract_type}), ce dossier quitte l'archive et reste disponible dans vos dossiers opérationnels.`
+            `✅ Exception règle métier appliquée !\n\nLe dossier de ${formData.civility} ${formData.last_name} (${formData.contract_type}) est réactivé dans vos dossiers opérationnels en cours.\n\nIl ne sera PAS réarchivé à la fermeture et restera actif jusqu'à ce que sa date dépasse de nouveau les 30 jours.`
           );
         } else {
-          // RÈGLE : à la sortie, il est réarchivé de nouveau
+          // RÈGLE : à la sortie, il est réarchivé de nouveau (Nouveau contrat > 30 jours)
           await dataService.rearchiveCandidateOnExit(formData.id);
           alert(
             `Consultation terminée pour ${formData.civility} ${formData.last_name}.\n\nCe dossier de plus d'un mois a été réarchivé automatiquement.`
           );
         }
       } else {
-        // Dossier normal : simple mise à jour des modifications
-        await dataService.updateCandidate(formData.id, formData);
+        // Dossier opérationnel actif :
+        let updates = { ...formData };
+        if (isRenewalOrIntermediate && formData.contract_type !== candidate?.contract_type) {
+          // Nouveau cycle de 30 jours déclenché par passage en renouvellement / visite intermédiaire
+          updates.reactivated_at = new Date().toISOString();
+          updates.is_archived = false;
+          updates.archived_at = undefined;
+        }
+        await dataService.updateCandidate(formData.id, updates);
       }
 
       onUpdate?.();
@@ -100,7 +117,7 @@ export const CandidateFicheModal: React.FC<CandidateFicheModalProps> = ({
   const handleContractTypeChange = (newType: ContractType) => {
     setFormData(prev => prev ? { ...prev, contract_type: newType } : null);
     if (newType === 'Renouvellement de contrat' || newType === 'Contrat intermédiaire') {
-      setNotice("✅ Exception appliquée : Ce contrat étant un Renouvellement / Visite intermédiaire, ce dossier sera définitivement rétabli et NE SERA PAS réarchivé à la sortie.");
+      setNotice(`✅ Exception règle métier : En « ${newType} », ce dossier n'est PAS réarchivé et reste réactivé dans vos dossiers opérationnels en cours jusqu'à ce que la date dépasse de nouveau les 30 jours.`);
     } else {
       setNotice(null);
     }
@@ -173,7 +190,7 @@ export const CandidateFicheModal: React.FC<CandidateFicheModalProps> = ({
               <div className="p-2.5 rounded-xl bg-slate-950/60 border border-amber-500/30 text-[11px] text-amber-300 flex items-start gap-2">
                 <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <span>
-                  <strong>Règle de sortie :</strong> Ce dossier sera <strong>automatiquement réarchivé</strong> à la fermeture de cette fenêtre, <u>sauf</u> si vous le basculez en <strong>Renouvellement de contrat</strong> ou en <strong>Contrat intermédiaire (Visite intermédiaire)</strong>.
+                  <strong>Exception règle métier :</strong> Si le type de contrat est (ou est passé en) <strong>« Renouvellement de contrat »</strong> ou <strong>« Contrat intermédiaire »</strong> (Visite intermédiaire), le dossier <u>n'est PAS réarchivé</u> et reste <strong>définitivement réactivé dans vos dossiers opérationnels en cours</strong> jusqu'à ce que la date dépasse de nouveau les 30 jours.
                 </span>
               </div>
             </div>
@@ -275,7 +292,7 @@ export const CandidateFicheModal: React.FC<CandidateFicheModalProps> = ({
                 {isRenewalOrIntermediate && (
                   <span className="text-emerald-400 font-normal text-[10px] flex items-center gap-1">
                     <CheckCircle2 className="w-3 h-3" />
-                    Exempte ce dossier de tout réarchivage
+                    Réactivé dans les dossiers opérationnels (cycle 30j)
                   </span>
                 )}
               </label>
@@ -300,7 +317,7 @@ export const CandidateFicheModal: React.FC<CandidateFicheModalProps> = ({
                     >
                       <span>{type}</span>
                       {isExemptType && (
-                        <span className="text-[9px] text-emerald-400 mt-1">Désarchivage permanent</span>
+                        <span className="text-[9px] text-emerald-400 mt-1">Actif 30 jours</span>
                       )}
                     </button>
                   );
@@ -406,16 +423,19 @@ export const CandidateFicheModal: React.FC<CandidateFicheModalProps> = ({
               isRenewalOrIntermediate ? (
                 <span className="text-emerald-400 font-semibold flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4" />
-                  À la sortie : Ce dossier sera réactivé de façon permanente
+                  À la sortie : Réactivé dans les dossiers opérationnels (cycle 30 jours)
                 </span>
               ) : (
                 <span className="text-amber-400 font-semibold flex items-center gap-1.5">
                   <Archive className="w-4 h-4" />
-                  À la sortie : Ce dossier sera automatiquement réarchivé
+                  À la sortie : Réarchivé automatiquement (Nouveau contrat &gt; 30j)
                 </span>
               )
             ) : (
-              <span>Dossier opérationnel actif</span>
+              <span className="text-slate-300 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Dossier opérationnel actif {isRenewalOrIntermediate ? `(Cycle 30j : ${remainingDays}j restants)` : ''}</span>
+              </span>
             )}
           </div>
 
