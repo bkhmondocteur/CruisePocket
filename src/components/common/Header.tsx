@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { 
-  Anchor, 
   Stethoscope, 
   Building2, 
   LogOut, 
@@ -9,7 +8,7 @@ import {
   Wifi, 
   WifiOff, 
   ShieldCheck,
-  FlaskConical
+  KeyRound
 } from 'lucide-react';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -18,10 +17,10 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 interface HeaderProps {
-  onOpenTestSandbox?: () => void;
+  onOpenKeygen?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenTestSandbox }) => {
+export const Header: React.FC<HeaderProps> = ({ onOpenKeygen }) => {
   const { role, doctorProfile, companyProfile, logout } = useAuth();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -71,11 +70,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenTestSandbox }) => {
         
         {/* Logo & Titre */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-maritime-700 via-maritime-500 to-cyan-400 p-0.5 shadow-lg shadow-maritime-500/20 flex items-center justify-center">
-            <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-              <Anchor className="w-5 h-5 text-cyan-400 stroke-[2.2]" />
-            </div>
-          </div>
+          <img 
+            src="/logo.png" 
+            alt="CruisePocket Logo" 
+            className="w-11 h-11 object-contain drop-shadow-md"
+          />
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
@@ -107,15 +106,15 @@ export const Header: React.FC<HeaderProps> = ({ onOpenTestSandbox }) => {
             <span className="hidden md:inline">{isOnline ? 'Connecté' : 'Hors-ligne'}</span>
           </div>
 
-          {/* Bouton Mode Test & Bac à sable */}
-          {onOpenTestSandbox && (
+          {/* Bouton Keygen Dédié */}
+          {onOpenKeygen && (
             <button
-              onClick={onOpenTestSandbox}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-600/60 text-emerald-300 shadow-sm transition-all"
-              title="Ouvrir la page de test et simulateur"
+              onClick={onOpenKeygen}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-amber-500/50 text-slate-300 hover:text-white shadow-sm transition-all"
+              title="Générateur & Registre des Clés de Licence"
             >
-              <FlaskConical className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Page de Test</span>
+              <KeyRound className="w-3.5 h-3.5 text-amber-400" />
+              <span>Keygen</span>
             </button>
           )}
 
