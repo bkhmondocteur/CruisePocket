@@ -176,10 +176,10 @@ export const FinancialStats: React.FC<FinancialStatsProps> = ({ candidates, onBa
           </div>
           <div className="mt-3">
             <span className="text-3xl font-extrabold text-white">
-              {totalAmount.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €
+              {totalAmount.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} DT
             </span>
             <p className="text-[11px] text-slate-400 mt-1">
-              Sur {filteredRecords.length} dossier(s) analysé(s)
+              Sur {filteredRecords.length} dossier(s) analysé(s) (Dinars Tunisiens)
             </p>
           </div>
         </div>
@@ -194,7 +194,7 @@ export const FinancialStats: React.FC<FinancialStatsProps> = ({ candidates, onBa
           </div>
           <div className="mt-3">
             <span className="text-3xl font-extrabold text-emerald-400">
-              {paidAmount.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €
+              {paidAmount.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} DT
             </span>
             <p className="text-[11px] text-emerald-500/80 mt-1">
               {totalAmount > 0 ? Math.round((paidAmount / totalAmount) * 100) : 0}% de recouvrement
@@ -212,7 +212,7 @@ export const FinancialStats: React.FC<FinancialStatsProps> = ({ candidates, onBa
           </div>
           <div className="mt-3">
             <span className="text-3xl font-extrabold text-rose-400">
-              {unpaidAmount.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €
+              {unpaidAmount.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} DT
             </span>
             <p className="text-[11px] text-rose-400/80 mt-1">
               {totalAmount > 0 ? Math.round((unpaidAmount / totalAmount) * 100) : 0}% à percevoir
@@ -238,23 +238,23 @@ export const FinancialStats: React.FC<FinancialStatsProps> = ({ candidates, onBa
               <div 
                 style={{ width: `${totalAmount > 0 ? (paidAmount / totalAmount) * 100 : 0}%` }} 
                 className="bg-emerald-500 h-full transition-all duration-500"
-                title={`Payé: ${paidAmount} €`}
+                title={`Payé: ${paidAmount} DT`}
               />
               <div 
                 style={{ width: `${totalAmount > 0 ? (unpaidAmount / totalAmount) * 100 : 0}%` }} 
                 className="bg-rose-500 h-full transition-all duration-500"
-                title={`Non payé: ${unpaidAmount} €`}
+                title={`Non payé: ${unpaidAmount} DT`}
               />
             </div>
 
             <div className="flex items-center justify-between text-xs pt-1">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-                <span className="text-slate-300">Payé : {paidAmount} €</span>
+                <span className="text-slate-300">Payé : {paidAmount} DT</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-rose-500"></div>
-                <span className="text-slate-300">Non payé : {unpaidAmount} €</span>
+                <span className="text-slate-300">Non payé : {unpaidAmount} DT</span>
               </div>
             </div>
           </div>
@@ -262,11 +262,11 @@ export const FinancialStats: React.FC<FinancialStatsProps> = ({ candidates, onBa
           <div className="pt-4 border-t border-slate-800/80 grid grid-cols-2 gap-4 text-xs">
             <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
               <span className="text-slate-500 block">Règlement Candidat</span>
-              <span className="font-bold text-white text-base mt-0.5 block">{payerBreakdown.candidatePaid} €</span>
+              <span className="font-bold text-white text-base mt-0.5 block">{payerBreakdown.candidatePaid} DT</span>
             </div>
             <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
               <span className="text-slate-500 block">Prise en charge Société</span>
-              <span className="font-bold text-white text-base mt-0.5 block">{payerBreakdown.companyPaid} €</span>
+              <span className="font-bold text-white text-base mt-0.5 block">{payerBreakdown.companyPaid} DT</span>
             </div>
           </div>
         </div>
@@ -290,7 +290,7 @@ export const FinancialStats: React.FC<FinancialStatsProps> = ({ candidates, onBa
                   <div key={idx} className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-1.5 text-xs">
                     <div className="flex items-center justify-between font-bold">
                       <span className="text-slate-200">{item.name}</span>
-                      <span className="text-cyan-300 font-mono">{item.total.toLocaleString('fr-FR')} € ({percent}%)</span>
+                      <span className="text-cyan-300 font-mono">{item.total.toLocaleString('fr-FR')} DT ({percent}%)</span>
                     </div>
 
                     {/* Petite jauge */}
@@ -300,7 +300,7 @@ export const FinancialStats: React.FC<FinancialStatsProps> = ({ candidates, onBa
 
                     <div className="flex items-center justify-between text-[11px] text-slate-400 pt-0.5">
                       <span>{item.count} marin(s)</span>
-                      <span>Payé: <strong className="text-emerald-400">{item.paid} €</strong> | En attente: <strong className="text-rose-400">{item.unpaid} €</strong></span>
+                      <span>Payé: <strong className="text-emerald-400">{item.paid} DT</strong> | En attente: <strong className="text-rose-400">{item.unpaid} DT</strong></span>
                     </div>
                   </div>
                 );

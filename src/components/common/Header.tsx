@@ -7,8 +7,10 @@ import {
   Download, 
   Wifi, 
   WifiOff, 
-  ShieldCheck
+  ShieldCheck,
+  Database
 } from 'lucide-react';
+import { BackupModal } from './BackupModal';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -20,6 +22,7 @@ export const Header: React.FC = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -101,6 +104,16 @@ export const Header: React.FC = () => {
             <span className="hidden md:inline">{isOnline ? 'Connecté' : 'Hors-ligne'}</span>
           </div>
 
+          {/* Bouton Sauvegardes & Restauration */}
+          <button
+            onClick={() => setIsBackupModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-slate-300 hover:text-white shadow-sm transition-all"
+            title="Sauvegardes automatiques (5 fichiers rotatifs) et Restauration"
+          >
+            <Database className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="hidden sm:inline">Sauvegardes</span>
+          </button>
+
           {/* Bouton Installer PWA */}
           {!isInstalled && (
             <button
@@ -161,6 +174,12 @@ export const Header: React.FC = () => {
 
         </div>
       </div>
+
+      {/* Modal Sauvegardes & Restauration */}
+      <BackupModal
+        isOpen={isBackupModalOpen}
+        onClose={() => setIsBackupModalOpen(false)}
+      />
     </header>
   );
 };

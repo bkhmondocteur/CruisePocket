@@ -19,8 +19,11 @@ import {
   FileText,
   Trash2,
   Bell,
+  Archive,
+  ArchiveRestore,
   X
 } from 'lucide-react';
+import { CandidateFicheModal } from '../common/CandidateFicheModal';
 
 export const CompanyDashboard: React.FC = () => {
   const { companyProfile } = useAuth();
@@ -55,10 +58,12 @@ export const CompanyDashboard: React.FC = () => {
     time: string;
   } | null>(null);
 
-  // History list
+  // History list & Tabs (Actifs vs Archivés)
   const [recentTransfers, setRecentTransfers] = useState<Candidate[]>([]);
+  const [transferTab, setTransferTab] = useState<'actifs' | 'archives'>('actifs');
 
-  // Passport preview modal
+  // Modal fiche candidat & Passeport
+  const [selectedFicheCandidate, setSelectedFicheCandidate] = useState<Candidate | null>(null);
   const [selectedPassportCandidate, setSelectedPassportCandidate] = useState<Candidate | null>(null);
 
   const fileToDataUrl = (file: File): Promise<string> => {
@@ -589,23 +594,65 @@ export const CompanyDashboard: React.FC = () => {
         {/* COLONNE DROITE (5 cols) : SUIVI DES ENVOIS EN TEMPS RÉEL */}
         <div className="lg:col-span-5 space-y-4">
           <div className="glass-panel rounded-2xl p-6 border border-slate-800 shadow-xl">
-            <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <FileCheck className="w-4 h-4 text-emerald-400" />
-                Dossiers Récents Transmis
-              </h3>
-              <span className="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full">
-                {recentTransfers.length} marins
-              </span>
+            
+            {/* En-tête avec onglets Actifs vs Archivés (> 1 mois) */}
+            <div className="flex flex-col gap-3 pb-3 mb-4 border-b border-slate-800">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <FileCheck className="w-4 h-4 text-emerald-400" />
+                  Dossiers Transmis
+                </h3>
+                <span className="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full font-mono">
+                  {recentTransfers.length} total
+                </span>
+              </div>
+
+              {/* Onglets Actifs / Archivés */}
+              <div className="flex items-center p-1 rounded-xl bg-slate-950 border border-slate-800 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setTransferTab('actifs')}
+                  className={`flex-1 py-1.5 px-3 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 ${
+                    transferTab === 'actifs'
+                      ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span>Dossiers Actifs</span>
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-900 text-slate-300">
+                    {recentTransfers.filter(c => !c.is_archived).length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTransferTab('archives')}
+                  className={`flex-1 py-1.5 px-3 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 ${
+                    transferTab === 'archives'
+                      ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Archive className="w-3 h-3 text-purple-400" />
+                  <span>Archivés (&gt; 1 mois)</span>
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-purple-950 text-purple-300 border border-purple-800">
+                    {recentTransfers.filter(c => Boolean(c.is_archived)).length}
+                  </span>
+                </button>
+              </div>
             </div>
 
-            {recentTransfers.length === 0 ? (
+            {recentTransfers.filter(c => transferTab === 'actifs' ? !c.is_archived : Boolean(c.is_archived)).length === 0 ? (
               <div className="py-8 text-center text-slate-500 text-xs">
-                Aucun dossier transmis pour le moment.
+                {transferTab === 'actifs' 
+                  ? "Aucun dossier actif pour le moment." 
+                  : "Aucun dossier de plus d'un mois archivé."}
               </div>
             ) : (
               <div className="space-y-3 max-h-[580px] overflow-y-auto pr-1">
-                {recentTransfers.map((cand) => (
+                {recentTransfers
+                  .filter(c => transferTab === 'actifs' ? !c.is_archived : Boolean(c.is_archived))
+                  .map((cand) => (
                   <div
                     key={cand.id}
                     className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800/80 hover:border-slate-700 transition-all text-xs space-y-2"
@@ -646,12 +693,12 @@ export const CompanyDashboard: React.FC = () => {
                       <div>
                         <span className="text-slate-500">Paiement: </span>
                         <span className={cand.financial_status === 'Payé' ? 'text-emerald-400 font-semibold' : 'text-slate-400'}>
-                          {cand.financial_status} ({cand.financial_amount} €)
+                          {cand.financial_status} ({cand.financial_amount} DT)
                         </span>
                       </div>
                     </div>
 
-                    {/* Actions : Supprimer dossier + Consulter passeport */}
+                    {/* Actions : Supprimer dossier + Fiche Candidat + Consulter passeport */}
                     <div className="pt-2 border-t border-slate-900 flex items-center justify-between">
                       <button
                         type="button"
@@ -663,14 +710,25 @@ export const CompanyDashboard: React.FC = () => {
                         <span>Supprimer</span>
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={() => setSelectedPassportCandidate(cand)}
-                        className="text-[10px] text-cyan-400 hover:text-cyan-300 hover:underline flex items-center gap-1 font-semibold"
-                      >
-                        <FileText className="w-3 h-3" />
-                        <span>Consulter Passeport</span>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedFicheCandidate(cand)}
+                          className="text-[10px] text-cyan-400 hover:text-cyan-300 hover:underline flex items-center gap-1 font-semibold"
+                          title={cand.is_archived ? "Ouvrir la fiche archivée (récupération instantanée)" : "Ouvrir la fiche complète"}
+                        >
+                          {cand.is_archived ? <ArchiveRestore className="w-3 h-3 text-amber-400" /> : <FileText className="w-3 h-3" />}
+                          <span>{cand.is_archived ? 'Ouvrir (Archive)' : 'Fiche Candidat'}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPassportCandidate(cand)}
+                          className="text-[10px] text-slate-400 hover:text-slate-200 hover:underline flex items-center gap-1"
+                        >
+                          <span>Passeport</span>
+                        </button>
+                      </div>
                     </div>
 
                   </div>
@@ -690,6 +748,15 @@ export const CompanyDashboard: React.FC = () => {
         fileUrl={selectedPassportCandidate?.passport_file_url}
         candidateName={selectedPassportCandidate ? `${selectedPassportCandidate.civility} ${selectedPassportCandidate.last_name} ${selectedPassportCandidate.first_name}` : undefined}
         passportNumber={selectedPassportCandidate?.passport_number}
+      />
+
+      {/* Modal Fiche Candidat avec Récupération Instantanée & Réarchivage à la Sortie */}
+      <CandidateFicheModal
+        isOpen={Boolean(selectedFicheCandidate)}
+        candidate={selectedFicheCandidate}
+        onClose={() => setSelectedFicheCandidate(null)}
+        onUpdate={loadTransfers}
+        userRole="societe"
       />
 
     </div>

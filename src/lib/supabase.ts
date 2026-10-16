@@ -1,5 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Candidate, CandidateEvent, DeletionInfo, Role } from '../types';
+import { backupService } from './backupService';
+import { documentStorage } from './documentStorage';
 
 // Variables d'environnement Supabase (optionnelles en local, obligatoires en production)
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
@@ -52,6 +54,8 @@ const INITIAL_MOCK_CANDIDATES: Candidate[] = [
     financial_status: 'Non payé',
     payer_name: 'La société',
     service_company_name: 'TransMed Crewing Services',
+    currency: 'DT',
+    is_archived: false,
     created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
     updated_at: new Date(Date.now() - 3600000 * 2).toISOString()
   },
@@ -72,6 +76,8 @@ const INITIAL_MOCK_CANDIDATES: Candidate[] = [
     financial_status: 'Payé',
     payer_name: 'Le candidat lui-même',
     service_company_name: 'Azur Crewing Agency',
+    currency: 'DT',
+    is_archived: false,
     created_at: new Date(Date.now() - 3600000 * 4).toISOString(),
     updated_at: new Date(Date.now() - 3600000 * 4).toISOString()
   },
@@ -92,8 +98,33 @@ const INITIAL_MOCK_CANDIDATES: Candidate[] = [
     financial_status: 'Payé',
     payer_name: 'La société',
     service_company_name: 'TransMed Crewing Services',
+    currency: 'DT',
+    is_archived: false,
     created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
     updated_at: new Date(Date.now() - 86400000 * 1).toISOString()
+  },
+  {
+    id: 'cand-104',
+    civility: 'M.',
+    last_name: 'BEN SALEM',
+    first_name: 'Sofiane',
+    birth_date: '1989-07-12',
+    age: 37,
+    passport_number: 'TN482019',
+    cruise_company: 'MSC Croisières',
+    position: 'Officier Navigation',
+    contract_type: 'Nouveau contrat',
+    embarkation_date: '2026-08-15',
+    medical_status: 'Effectué',
+    financial_amount: 200,
+    financial_status: 'Payé',
+    payer_name: 'La société',
+    service_company_name: 'TransMed Crewing Services',
+    currency: 'DT',
+    is_archived: true,
+    archived_at: new Date(Date.now() - 86400000 * 15).toISOString(),
+    created_at: new Date(Date.now() - 86400000 * 45).toISOString(), // Créé il y a 45 jours (> 1 mois)
+    updated_at: new Date(Date.now() - 86400000 * 45).toISOString()
   }
 ];
 
@@ -110,43 +141,87 @@ try {
 export const dataService = {
   // --- Candidats ---
   async getCandidates(): Promise<Candidate[]> {
+    let rawList: Candidate[] = [];
     if (isSupabaseConfigured && supabase) {
       const { data, error } = await supabase
         .from('candidates')
         .select('*')
         .order('created_at', { ascending: false });
-      if (!error && data) return data as Candidate[];
+      if (!error && data) rawList = data as Candidate[];
+    } else {
+      try {
+        const raw = localStorage.getItem(STORAGE_CANDIDATES_KEY);
+        if (!raw) {
+          localStorage.setItem(STORAGE_CANDIDATES_KEY, JSON.stringify(INITIAL_MOCK_CANDIDATES));
+          rawList = INITIAL_MOCK_CANDIDATES;
+        } else {
+          rawList = JSON.parse(raw);
+        }
+      } catch {
+        rawList = INITIAL_MOCK_CANDIDATES;
+      }
     }
 
-    try {
-      const raw = localStorage.getItem(STORAGE_CANDIDATES_KEY);
-      if (!raw) {
-        localStorage.setItem(STORAGE_CANDIDATES_KEY, JSON.stringify(INITIAL_MOCK_CANDIDATES));
-        return INITIAL_MOCK_CANDIDATES;
+    // Évaluation automatique de l'archivage (> 1 mois / 30 jours)
+    // Règle : les dossiers de plus d'un mois sont archivés, sauf renouvellement de contrat ou contrat intermédiaire
+    const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+
+    const evaluated = rawList.map((c) => {
+      const createdTime = new Date(c.created_at).getTime();
+      const isOlderThanMonth = now - createdTime > ONE_MONTH_MS;
+      const isRenewalOrIntermediate = 
+        c.contract_type === 'Renouvellement de contrat' || 
+        c.contract_type === 'Contrat intermédiaire';
+
+      let is_archived = c.is_archived;
+      if (is_archived === undefined) {
+        is_archived = isOlderThanMonth && !isRenewalOrIntermediate;
+      } else if (isRenewalOrIntermediate) {
+        // En cas de renouvellement ou contrat intermédiaire, le dossier est actif
+        is_archived = false;
       }
-      return JSON.parse(raw);
-    } catch {
-      return INITIAL_MOCK_CANDIDATES;
-    }
+
+      return {
+        ...c,
+        currency: (c.currency || 'DT') as 'DT',
+        is_archived
+      };
+    });
+
+    return evaluated;
   },
 
   async addCandidate(candidate: Omit<Candidate, 'id' | 'created_at' | 'updated_at'>): Promise<Candidate> {
+    const docId = candidate.passport_file_url 
+      ? 'doc-' + Math.random().toString(36).substring(2, 9)
+      : undefined;
+
+    // Règle documents lourds : les documents ne sont pas enregistrés sur Firestore,
+    // Firestore/Bridge sert seulement de pont éphémère. Sauvegarde dans IndexedDB local.
+    if (docId && candidate.passport_file_url) {
+      documentStorage.transmitViaBridge(
+        docId, 
+        candidate.passport_file_name || 'copie-passeport.pdf', 
+        candidate.passport_file_url
+      );
+    }
+
     const newRecord: Candidate = {
       ...candidate,
       id: 'cand-' + Math.random().toString(36).substring(2, 9),
+      currency: 'DT',
+      is_archived: false,
+      passport_file_id: docId,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
 
     if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase
-        .from('candidates')
-        .insert([candidate])
-        .select()
-        .single();
-      if (!error && data) {
-        return data as Candidate;
-      }
+      // Sur le backend distant, on n'enregistre PAS le document lourd directement
+      const lightweightCopy = { ...newRecord };
+      delete lightweightCopy.passport_file_url;
+      await supabase.from('candidates').insert([lightweightCopy]);
     }
 
     // Sauvegarde locale
@@ -161,33 +236,43 @@ export const dataService = {
     localBroadcast?.postMessage({ type: 'CANDIDATE_ADDED', candidate: newRecord });
     window.dispatchEvent(new CustomEvent('cruisepocket_candidate_update', { detail: newRecord }));
 
+    // Sauvegarde automatique rotative (5 fichiers tournants)
+    backupService.triggerAutoBackup().catch(console.error);
+
     return newRecord;
   },
 
   async updateCandidate(id: string, updates: Partial<Candidate>): Promise<Candidate | null> {
     if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase
-        .from('candidates')
-        .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq('id', id)
-        .select()
-        .single();
-      if (!error && data) return data as Candidate;
+      const lightweight = { ...updates, updated_at: new Date().toISOString() };
+      delete lightweight.passport_file_url;
+      await supabase.from('candidates').update(lightweight).eq('id', id);
     }
 
     const existing = await this.getCandidates();
     const index = existing.findIndex(c => c.id === id);
     if (index === -1) return null;
 
+    // Si le contrat devient Renouvellement ou Contrat Intermédiaire, désarchiver immédiatement
+    let is_archived = updates.is_archived !== undefined ? updates.is_archived : existing[index].is_archived;
+    const contractType = updates.contract_type || existing[index].contract_type;
+    if (contractType === 'Renouvellement de contrat' || contractType === 'Contrat intermédiaire') {
+      is_archived = false;
+    }
+
     existing[index] = {
       ...existing[index],
       ...updates,
+      is_archived,
       updated_at: new Date().toISOString()
     };
 
     localStorage.setItem(STORAGE_CANDIDATES_KEY, JSON.stringify(existing));
     localBroadcast?.postMessage({ type: 'CANDIDATE_UPDATED', candidate: existing[index] });
     window.dispatchEvent(new CustomEvent('cruisepocket_candidate_update', { detail: existing[index] }));
+
+    // Sauvegarde automatique rotative (5 fichiers tournants)
+    backupService.triggerAutoBackup().catch(console.error);
 
     return existing[index];
   },
@@ -202,6 +287,10 @@ export const dataService = {
 
     if (isSupabaseConfigured && supabase) {
       await supabase.from('candidates').delete().eq('id', id);
+    }
+
+    if (candidateToDelete.passport_file_id) {
+      await documentStorage.deleteDocument(candidateToDelete.passport_file_id);
     }
 
     const updated = existing.filter(c => c.id !== id);
@@ -224,7 +313,46 @@ export const dataService = {
       detail: deletionInfo 
     }));
 
+    // Sauvegarde automatique rotative (5 fichiers tournants)
+    backupService.triggerAutoBackup().catch(console.error);
+
     return candidateToDelete;
+  },
+
+  /**
+   * Réarchivage à la sortie de consultation de la fiche candidat
+   * Règle : réarchivé de nouveau sauf en cas de renouvellement de contrat ou visite intermédiaire
+   */
+  async rearchiveCandidateOnExit(id: string): Promise<Candidate | null> {
+    const existing = await this.getCandidates();
+    const candidate = existing.find(c => c.id === id);
+    if (!candidate) return null;
+
+    const isExempt = 
+      candidate.contract_type === 'Renouvellement de contrat' || 
+      candidate.contract_type === 'Contrat intermédiaire';
+
+    if (isExempt) {
+      // Reste actif de manière permanente !
+      return this.updateCandidate(id, { is_archived: false });
+    } else {
+      // Réarchivé automatiquement à la sortie
+      return this.updateCandidate(id, { 
+        is_archived: true, 
+        archived_at: new Date().toISOString() 
+      });
+    }
+  },
+
+  /**
+   * Charger le document lourd d'un candidat à la demande depuis le coffre IndexedDB
+   */
+  async loadCandidateDocument(candidate: Candidate): Promise<string | undefined> {
+    if (candidate.passport_file_url) return candidate.passport_file_url;
+    if (!candidate.passport_file_id) return undefined;
+
+    const doc = await documentStorage.getDocument(candidate.passport_file_id);
+    return doc?.dataUrl;
   },
 
   // --- Compagnies de Croisière (Auto-alimentation) ---

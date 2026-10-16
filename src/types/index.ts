@@ -36,8 +36,30 @@ export interface Candidate {
   service_company_name: string;
   doctor_id?: string;
   doctor_name?: string;
+  is_archived?: boolean;
+  archived_at?: string;
+  passport_file_id?: string;
+  currency?: 'DT';
   created_at: string;
   updated_at: string;
+}
+
+export interface BackupSlotInfo {
+  slot: number;
+  fileName: string;
+  timestamp: string;
+  candidatesCount: number;
+  sizeBytes?: number;
+}
+
+export interface BackupPayload {
+  version: string;
+  generated_at: string;
+  currency: 'DT';
+  candidates: Candidate[];
+  cruise_companies: string[];
+  license_registry?: any;
+  heavy_documents?: Record<string, { fileName: string; dataUrl: string }>;
 }
 
 export interface ServiceCompany {

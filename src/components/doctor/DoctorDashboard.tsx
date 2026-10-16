@@ -17,8 +17,11 @@ import {
   CreditCard,
   Trash2,
   Bell,
+  Archive,
+  ArchiveRestore,
   X
 } from 'lucide-react';
+import { CandidateFicheModal } from '../common/CandidateFicheModal';
 
 export const DoctorDashboard: React.FC = () => {
   const { doctorProfile } = useAuth();
@@ -31,8 +34,11 @@ export const DoctorDashboard: React.FC = () => {
   // Active view: 'dashboard' vs 'stats'
   const [currentView, setCurrentView] = useState<'dashboard' | 'stats'>('dashboard');
 
-  // Medical status tab: 'En instance' (par défaut) vs 'Effectué'
-  const [statusTab, setStatusTab] = useState<MedicalStatus>('En instance');
+  // Medical status tab: 'En instance' (par défaut) vs 'Effectué' vs 'Archivés'
+  const [statusTab, setStatusTab] = useState<'En instance' | 'Effectué' | 'Archivés'>('En instance');
+
+  // Modal fiche complète / récupération instantanée
+  const [selectedFicheCandidate, setSelectedFicheCandidate] = useState<Candidate | null>(null);
 
   // New incoming notification pulse
   const [hasNewAlert, setHasNewAlert] = useState(false);
@@ -146,21 +152,31 @@ export const DoctorDashboard: React.FC = () => {
     await dataService.updateCandidate(candidateId, { payer_name: payer });
   };
 
-  // Filtrage selon onglet et recherche
-  const pendingCandidates = candidates.filter((c) => c.medical_status === 'En instance');
-  const completedCandidates = candidates.filter((c) => c.medical_status === 'Effectué');
+  // Séparation Actifs vs Archivés (> 1 mois)
+  const activeCandidates = candidates.filter((c) => !c.is_archived);
+  const pendingCandidates = activeCandidates.filter((c) => c.medical_status === 'En instance');
+  const completedCandidates = activeCandidates.filter((c) => c.medical_status === 'Effectué');
+  const archivedCandidates = candidates.filter((c) => Boolean(c.is_archived));
 
-  const displayedList = (statusTab === 'En instance' ? pendingCandidates : completedCandidates)
-    .filter((c) => {
-      const q = searchTerm.toLowerCase();
-      return (
-        c.last_name.toLowerCase().includes(q) ||
-        c.first_name.toLowerCase().includes(q) ||
-        c.passport_number.toLowerCase().includes(q) ||
-        c.cruise_company.toLowerCase().includes(q) ||
-        c.service_company_name.toLowerCase().includes(q)
-      );
-    });
+  let currentTabList: Candidate[] = [];
+  if (statusTab === 'En instance') {
+    currentTabList = pendingCandidates;
+  } else if (statusTab === 'Effectué') {
+    currentTabList = completedCandidates;
+  } else {
+    currentTabList = archivedCandidates;
+  }
+
+  const displayedList = currentTabList.filter((c) => {
+    const q = searchTerm.toLowerCase();
+    return (
+      c.last_name.toLowerCase().includes(q) ||
+      c.first_name.toLowerCase().includes(q) ||
+      c.passport_number.toLowerCase().includes(q) ||
+      c.cruise_company.toLowerCase().includes(q) ||
+      c.service_company_name.toLowerCase().includes(q)
+    );
+  });
 
   // Si l'utilisateur consulte le Bilan Financier
   if (currentView === 'stats') {
@@ -274,6 +290,21 @@ export const DoctorDashboard: React.FC = () => {
             <span>Effectué</span>
             <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800">
               {completedCandidates.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setStatusTab('Archivés')}
+            className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+              statusTab === 'Archivés'
+                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Archive className="w-3.5 h-3.5 text-purple-400" />
+            <span>Archivés (&gt; 1 mois)</span>
+            <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-purple-950 text-purple-300 border border-purple-800">
+              {archivedCandidates.length}
             </span>
           </button>
         </div>
@@ -429,9 +460,9 @@ export const DoctorDashboard: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
-                  {/* Champ Montant */}
+                  {/* Champ Montant en Dinars Tunisiens (DT) */}
                   <div>
-                    <label className="block text-[10px] text-slate-500 mb-1">Montant (€)</label>
+                    <label className="block text-[10px] text-slate-500 mb-1">Montant (DT)</label>
                     <input
                       type="number"
                       step="5"
@@ -455,6 +486,25 @@ export const DoctorDashboard: React.FC = () => {
                     </select>
                   </div>
                 </div>
+
+                {/* BOUTON OUVRIR FICHE CANDIDAT / RÉCUPÉRATION ARCHIVE INSTANTANÉE */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedFicheCandidate(cand)}
+                  className="w-full mt-2 py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm group"
+                >
+                  {cand.is_archived ? (
+                    <>
+                      <ArchiveRestore className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
+                      <span>Ouvrir Fiche (Récupération Instantanée)</span>
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
+                      <span>Consulter Fiche Complète</span>
+                    </>
+                  )}
+                </button>
               </div>
 
             </div>
@@ -470,6 +520,15 @@ export const DoctorDashboard: React.FC = () => {
         fileUrl={selectedPassportCandidate?.passport_file_url}
         candidateName={selectedPassportCandidate ? `${selectedPassportCandidate.civility} ${selectedPassportCandidate.last_name} ${selectedPassportCandidate.first_name}` : undefined}
         passportNumber={selectedPassportCandidate?.passport_number}
+      />
+
+      {/* MODAL FICHE CANDIDAT AVEC GESTION DE SORTIE & RÉARCHIVAGE CONDITIONNEL */}
+      <CandidateFicheModal
+        isOpen={Boolean(selectedFicheCandidate)}
+        candidate={selectedFicheCandidate}
+        onClose={() => setSelectedFicheCandidate(null)}
+        onUpdate={fetchCandidates}
+        userRole="medecin"
       />
 
     </div>
