@@ -71,7 +71,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenKeygen }) => {
         {/* Logo & Titre */}
         <div className="flex items-center gap-3">
           <img 
-            src="/logo.png" 
+            src={`${import.meta.env.BASE_URL}logo.png`} 
             alt="CruisePocket Logo" 
             className="w-11 h-11 object-contain drop-shadow-md"
           />

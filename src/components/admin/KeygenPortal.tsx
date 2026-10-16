@@ -141,7 +141,7 @@ export const KeygenPortal: React.FC<KeygenPortalProps> = ({ onBackToApp, onLogin
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-800">
         <div className="flex items-center gap-4">
           <img 
-            src="/logo.png" 
+            src={`${import.meta.env.BASE_URL}logo.png`} 
             alt="CruisePocket Official Logo" 
             className="w-16 h-16 object-contain drop-shadow-xl"
           />
