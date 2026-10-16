@@ -76,3 +76,19 @@ export interface LicenseGenerationDoctorInput {
   order_number: string;
   practice_location: string;
 }
+
+export interface DeletionInfo {
+  candidateId: string;
+  candidateName: string;
+  deletedBy: {
+    role: Role;
+    name: string;
+  };
+  timestamp: string;
+}
+
+export interface CandidateEvent {
+  type: string;
+  payload?: Candidate;
+  deletion?: DeletionInfo;
+}

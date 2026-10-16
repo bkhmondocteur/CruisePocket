@@ -16,7 +16,10 @@ import {
   Ship, 
   Briefcase, 
   Clock,
-  FileText
+  FileText,
+  Trash2,
+  Bell,
+  X
 } from 'lucide-react';
 
 export const CompanyDashboard: React.FC = () => {
@@ -43,6 +46,14 @@ export const CompanyDashboard: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  
+  // Notification mutuelle de suppression reçue du médecin
+  const [deletionNotice, setDeletionNotice] = useState<{
+    candidateName: string;
+    author: string;
+    role: string;
+    time: string;
+  } | null>(null);
 
   // History list
   const [recentTransfers, setRecentTransfers] = useState<Candidate[]>([]);
@@ -68,14 +79,45 @@ export const CompanyDashboard: React.FC = () => {
     loadCruiseCompanies();
     loadTransfers();
 
-    // Écouter les mises à jour réactives
-    const unsubscribe = dataService.subscribeToCandidates(() => {
+    // Écouter les mises à jour réactives (y compris suppressions mutuelles)
+    const unsubscribe = dataService.subscribeToCandidates((event) => {
       loadTransfers();
       loadCruiseCompanies();
+
+      if (event.type === 'CANDIDATE_DELETED' && event.deletion) {
+        // Notification mutuelle si l'action vient du médecin
+        if (event.deletion.deletedBy.role === 'medecin') {
+          setDeletionNotice({
+            candidateName: event.deletion.candidateName,
+            author: event.deletion.deletedBy.name,
+            role: 'le Médecin',
+            time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+          });
+        }
+      }
     });
 
     return () => unsubscribe();
   }, []);
+
+  const handleDeleteCandidate = async (candidate: Candidate) => {
+    const confirmDelete = window.confirm(
+      `Êtes-vous sûr de vouloir supprimer définitivement le dossier de ${candidate.civility} ${candidate.last_name} ${candidate.first_name} ?\n\nLe Médecin en sera immédiatement notifié en temps réel.`
+    );
+    if (!confirmDelete) return;
+
+    try {
+      await dataService.deleteCandidate(candidate.id, {
+        role: 'societe',
+        name: companyProfile?.name || 'Société de Service'
+      });
+      await loadTransfers();
+      setSuccessMessage(`Le dossier de ${candidate.civility} ${candidate.last_name} a été supprimé. Le médecin a été notifié en direct.`);
+      setTimeout(() => setSuccessMessage(null), 5000);
+    } catch {
+      setErrorMessage("Erreur lors de la suppression du dossier.");
+    }
+  };
 
   const loadCruiseCompanies = async () => {
     const list = await dataService.getCruiseCompanies();
@@ -219,6 +261,35 @@ export const CompanyDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Notification Mutuelle en Direct si le Médecin supprime un dossier */}
+      {deletionNotice && (
+        <div className="p-4 rounded-2xl bg-amber-950/80 border border-amber-500/70 text-amber-200 text-xs shadow-xl flex items-start justify-between gap-3 animate-fadeIn">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-xl bg-amber-900/60 text-amber-300 mt-0.5">
+              <Bell className="w-4 h-4 animate-bounce" />
+            </div>
+            <div>
+              <div className="font-bold text-white text-sm flex items-center gap-2">
+                <span>Notification Mutuelle : Dossier Supprimé</span>
+                <span className="text-[10px] bg-amber-900/80 px-2 py-0.5 rounded text-amber-300 font-mono">
+                  {deletionNotice.time}
+                </span>
+              </div>
+              <p className="mt-1 text-amber-200/90 leading-relaxed">
+                Le dossier du marin <strong>{deletionNotice.candidateName}</strong> a été retiré par {deletionNotice.role} (<strong>{deletionNotice.author}</strong>). Votre liste a été synchronisée en temps réel.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setDeletionNotice(null)}
+            className="p-1.5 text-amber-400 hover:text-white rounded-lg hover:bg-amber-900/60 transition-colors"
+            title="Fermer la notification"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Grille principale : Formulaire d'ajout + Historique rapide */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -580,8 +651,18 @@ export const CompanyDashboard: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Bouton pour voir le passeport */}
-                    <div className="pt-1 flex justify-end">
+                    {/* Actions : Supprimer dossier + Consulter passeport */}
+                    <div className="pt-2 border-t border-slate-900 flex items-center justify-between">
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCandidate(cand)}
+                        className="text-[10px] text-slate-500 hover:text-rose-400 flex items-center gap-1 font-semibold transition-colors group"
+                        title="Supprimer ce dossier et notifier le médecin"
+                      >
+                        <Trash2 className="w-3 h-3 group-hover:scale-110 transition-transform" />
+                        <span>Supprimer</span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => setSelectedPassportCandidate(cand)}

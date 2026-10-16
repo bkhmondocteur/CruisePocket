@@ -14,7 +14,10 @@ import {
   Sparkles,
   BarChart3,
   Calendar,
-  CreditCard
+  CreditCard,
+  Trash2,
+  Bell,
+  X
 } from 'lucide-react';
 
 export const DoctorDashboard: React.FC = () => {
@@ -34,6 +37,14 @@ export const DoctorDashboard: React.FC = () => {
   // New incoming notification pulse
   const [hasNewAlert, setHasNewAlert] = useState(false);
 
+  // Notification mutuelle de suppression reçue de la société
+  const [deletionNotice, setDeletionNotice] = useState<{
+    candidateName: string;
+    author: string;
+    role: string;
+    time: string;
+  } | null>(null);
+
   // Passport preview modal
   const [selectedPassportCandidate, setSelectedPassportCandidate] = useState<Candidate | null>(null);
 
@@ -47,11 +58,39 @@ export const DoctorDashboard: React.FC = () => {
       if (event.type === 'CANDIDATE_ADDED') {
         setHasNewAlert(true);
         setTimeout(() => setHasNewAlert(false), 5000);
+      } else if (event.type === 'CANDIDATE_DELETED' && event.deletion) {
+        // Notification mutuelle si l'action vient d'une société
+        if (event.deletion.deletedBy.role === 'societe') {
+          setDeletionNotice({
+            candidateName: event.deletion.candidateName,
+            author: event.deletion.deletedBy.name,
+            role: 'la Société de Service',
+            time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+          });
+        }
       }
     });
 
     return () => unsubscribe();
   }, []);
+
+  const handleDeleteCandidate = async (candidate: Candidate) => {
+    const confirmDelete = window.confirm(
+      `Êtes-vous sûr de vouloir supprimer définitivement le dossier de ${candidate.civility} ${candidate.last_name} ${candidate.first_name} ?\n\nLa Société de Service (${candidate.service_company_name}) sera immédiatement notifiée en temps réel.`
+    );
+    if (!confirmDelete) return;
+
+    try {
+      await dataService.deleteCandidate(candidate.id, {
+        role: 'medecin',
+        name: doctorProfile?.full_name || 'Dr. Médecin Agréé'
+      });
+      await fetchCandidates();
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de la suppression du dossier.");
+    }
+  };
 
   const fetchCandidates = async () => {
     try {
@@ -174,6 +213,35 @@ export const DoctorDashboard: React.FC = () => {
         </div>
       )}
 
+      {/* Alerte Temps Réel quand un dossier est supprimé par une société de service */}
+      {deletionNotice && (
+        <div className="p-4 rounded-2xl bg-amber-950/80 border border-amber-500/70 text-amber-200 text-xs shadow-xl flex items-start justify-between gap-3 animate-fadeIn">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-xl bg-amber-900/60 text-amber-300 mt-0.5">
+              <Bell className="w-4 h-4 animate-bounce" />
+            </div>
+            <div>
+              <div className="font-bold text-white text-sm flex items-center gap-2">
+                <span>Notification Mutuelle : Dossier Supprimé</span>
+                <span className="text-[10px] bg-amber-900/80 px-2 py-0.5 rounded text-amber-300 font-mono">
+                  {deletionNotice.time}
+                </span>
+              </div>
+              <p className="mt-1 text-amber-200/90 leading-relaxed">
+                Le dossier du marin <strong>{deletionNotice.candidateName}</strong> a été retiré par {deletionNotice.role} (<strong>{deletionNotice.author}</strong>). Votre liste a été synchronisée en temps réel.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setDeletionNotice(null)}
+            className="p-1.5 text-amber-400 hover:text-white rounded-lg hover:bg-amber-900/60 transition-colors"
+            title="Fermer cette notification"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Barre de Filtre & Recherche & Onglets En instance / Effectué */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         
@@ -268,23 +336,35 @@ export const DoctorDashboard: React.FC = () => {
                     </h3>
                   </div>
 
-                  {/* BOUTON TOGGLE STATUT MÉDICAL (En instance <-> Effectué) */}
-                  <button
-                    onClick={() => handleToggleMedicalStatus(cand)}
-                    title="Cliquer pour basculer le statut médical"
-                    className={`px-2.5 py-1 rounded-full text-xs font-bold border transition-all flex items-center gap-1.5 ${
-                      cand.medical_status === 'Effectué'
-                        ? 'bg-emerald-950 text-emerald-400 border-emerald-800 hover:bg-emerald-900'
-                        : 'bg-amber-950 text-amber-400 border-amber-800 hover:bg-amber-900'
-                    }`}
-                  >
-                    {cand.medical_status === 'Effectué' ? (
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                    ) : (
-                      <Clock className="w-3.5 h-3.5" />
-                    )}
-                    <span>{cand.medical_status}</span>
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    {/* BOUTON TOGGLE STATUT MÉDICAL (En instance <-> Effectué) */}
+                    <button
+                      onClick={() => handleToggleMedicalStatus(cand)}
+                      title="Cliquer pour basculer le statut médical"
+                      className={`px-2.5 py-1 rounded-full text-xs font-bold border transition-all flex items-center gap-1.5 ${
+                        cand.medical_status === 'Effectué'
+                          ? 'bg-emerald-950 text-emerald-400 border-emerald-800 hover:bg-emerald-900'
+                          : 'bg-amber-950 text-amber-400 border-amber-800 hover:bg-amber-900'
+                      }`}
+                    >
+                      {cand.medical_status === 'Effectué' ? (
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                      ) : (
+                        <Clock className="w-3.5 h-3.5" />
+                      )}
+                      <span>{cand.medical_status}</span>
+                    </button>
+
+                    {/* BOUTON SUPPRIMER LE DOSSIER AVEC NOTIFICATION MUTUELLE */}
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteCandidate(cand)}
+                      className="p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors"
+                      title="Supprimer ce dossier et notifier la société"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Métadonnées du Marin */}

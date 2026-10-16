@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Candidate } from '../types';
+import { Candidate, CandidateEvent, DeletionInfo, Role } from '../types';
 
 // Variables d'environnement Supabase (optionnelles en local, obligatoires en production)
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
@@ -192,6 +192,41 @@ export const dataService = {
     return existing[index];
   },
 
+  async deleteCandidate(
+    id: string, 
+    deletedBy: { role: Role; name: string }
+  ): Promise<Candidate | null> {
+    const existing = await this.getCandidates();
+    const candidateToDelete = existing.find(c => c.id === id);
+    if (!candidateToDelete) return null;
+
+    if (isSupabaseConfigured && supabase) {
+      await supabase.from('candidates').delete().eq('id', id);
+    }
+
+    const updated = existing.filter(c => c.id !== id);
+    localStorage.setItem(STORAGE_CANDIDATES_KEY, JSON.stringify(updated));
+
+    const deletionInfo: DeletionInfo = {
+      candidateId: id,
+      candidateName: `${candidateToDelete.civility} ${candidateToDelete.last_name} ${candidateToDelete.first_name}`,
+      deletedBy,
+      timestamp: new Date().toISOString()
+    };
+
+    localBroadcast?.postMessage({ 
+      type: 'CANDIDATE_DELETED', 
+      candidate: candidateToDelete,
+      deletion: deletionInfo 
+    });
+
+    window.dispatchEvent(new CustomEvent('cruisepocket_candidate_deleted', { 
+      detail: deletionInfo 
+    }));
+
+    return candidateToDelete;
+  },
+
   // --- Compagnies de Croisière (Auto-alimentation) ---
   async getCruiseCompanies(): Promise<string[]> {
     if (isSupabaseConfigured && supabase) {
@@ -233,12 +268,25 @@ export const dataService = {
   },
 
   // --- Écouteur en temps réel (Supabase + Broadcast local) ---
-  subscribeToCandidates(callback: (event: { type: string; payload?: Candidate }) => void) {
+  subscribeToCandidates(callback: (event: CandidateEvent) => void) {
     if (isSupabaseConfigured && supabase) {
       const channel = supabase
         .channel('public:candidates')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'candidates' }, (payload: any) => {
-          callback({ type: payload.eventType, payload: payload.new as Candidate });
+          if (payload.eventType === 'DELETE') {
+            callback({ 
+              type: 'CANDIDATE_DELETED', 
+              payload: payload.old as Candidate,
+              deletion: {
+                candidateId: payload.old?.id,
+                candidateName: payload.old?.last_name ? `${payload.old.last_name} ${payload.old.first_name}` : 'Marin',
+                deletedBy: { role: 'medecin', name: 'Partenaire distant' },
+                timestamp: new Date().toISOString()
+              }
+            });
+          } else {
+            callback({ type: payload.eventType, payload: payload.new as Candidate });
+          }
         })
         .subscribe();
 
@@ -254,22 +302,33 @@ export const dataService = {
       }
     };
 
-    const handleCustomEvent = (e: Event) => {
+    const handleCustomUpdate = (e: Event) => {
       const custom = e as CustomEvent<Candidate>;
       callback({ type: 'UPDATE', payload: custom.detail });
     };
 
+    const handleCustomDeletion = (e: Event) => {
+      const custom = e as CustomEvent<DeletionInfo>;
+      callback({ type: 'CANDIDATE_DELETED', deletion: custom.detail });
+    };
+
     const handleBroadcast = (e: MessageEvent) => {
-      callback({ type: e.data?.type || 'BROADCAST', payload: e.data?.candidate });
+      callback({ 
+        type: e.data?.type || 'BROADCAST', 
+        payload: e.data?.candidate,
+        deletion: e.data?.deletion
+      });
     };
 
     window.addEventListener('storage', handleStorageEvent);
-    window.addEventListener('cruisepocket_candidate_update', handleCustomEvent);
+    window.addEventListener('cruisepocket_candidate_update', handleCustomUpdate);
+    window.addEventListener('cruisepocket_candidate_deleted', handleCustomDeletion);
     localBroadcast?.addEventListener('message', handleBroadcast);
 
     return () => {
       window.removeEventListener('storage', handleStorageEvent);
-      window.removeEventListener('cruisepocket_candidate_update', handleCustomEvent);
+      window.removeEventListener('cruisepocket_candidate_update', handleCustomUpdate);
+      window.removeEventListener('cruisepocket_candidate_deleted', handleCustomDeletion);
       localBroadcast?.removeEventListener('message', handleBroadcast);
     };
   }
