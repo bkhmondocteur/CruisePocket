@@ -7,8 +7,7 @@ import {
   Download, 
   Wifi, 
   WifiOff, 
-  ShieldCheck,
-  KeyRound
+  ShieldCheck
 } from 'lucide-react';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -16,11 +15,7 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
-interface HeaderProps {
-  onOpenKeygen?: () => void;
-}
-
-export const Header: React.FC<HeaderProps> = ({ onOpenKeygen }) => {
+export const Header: React.FC = () => {
   const { role, doctorProfile, companyProfile, logout } = useAuth();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -105,18 +100,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenKeygen }) => {
             {isOnline ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
             <span className="hidden md:inline">{isOnline ? 'Connecté' : 'Hors-ligne'}</span>
           </div>
-
-          {/* Bouton Keygen Dédié */}
-          {onOpenKeygen && (
-            <button
-              onClick={onOpenKeygen}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-amber-500/50 text-slate-300 hover:text-white shadow-sm transition-all"
-              title="Générateur & Registre des Clés de Licence"
-            >
-              <KeyRound className="w-3.5 h-3.5 text-amber-400" />
-              <span>Keygen</span>
-            </button>
-          )}
 
           {/* Bouton Installer PWA */}
           {!isInstalled && (

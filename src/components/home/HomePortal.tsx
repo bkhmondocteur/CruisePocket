@@ -10,15 +10,10 @@ import {
   ArrowRight, 
   ChevronLeft, 
   ShieldCheck, 
-  Info,
-  SlidersHorizontal
+  Info
 } from 'lucide-react';
 
-interface HomePortalProps {
-  onOpenKeygen?: () => void;
-}
-
-export const HomePortal: React.FC<HomePortalProps> = ({ onOpenKeygen }) => {
+export const HomePortal: React.FC = () => {
   const { targetRole, setTargetRole, loginWithLicense } = useAuth();
   
   // Login State
@@ -165,23 +160,11 @@ export const HomePortal: React.FC<HomePortalProps> = ({ onOpenKeygen }) => {
 
         </div>
 
-        {/* Accès discret au Keygen Administrateur */}
-        {onOpenKeygen && (
-          <div className="mt-12 flex flex-col sm:flex-row items-center gap-3 text-xs text-slate-400">
-            <span className="flex items-center gap-1.5 text-slate-500">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              Authentification par Clé de Licence sécurisée.
-            </span>
-            <span className="hidden sm:inline text-slate-700">•</span>
-            <button
-              onClick={onOpenKeygen}
-              className="inline-flex items-center gap-1 text-cyan-400 hover:text-cyan-300 hover:underline font-semibold transition-colors"
-            >
-              <KeyRound className="w-3.5 h-3.5" />
-              <span>Générateur de Licences (Keygen Dédié)</span>
-            </button>
-          </div>
-        )}
+        {/* Note de sécurité */}
+        <div className="mt-12 flex items-center justify-center gap-2 text-xs text-slate-500">
+          <ShieldCheck className="w-4 h-4 text-emerald-400" />
+          <span>Authentification sécurisée par Clé de Licence officielle STCW & OMI.</span>
+        </div>
 
       </div>
     );
@@ -271,7 +254,7 @@ export const HomePortal: React.FC<HomePortalProps> = ({ onOpenKeygen }) => {
             <ArrowRight className="w-4 h-4" />
           </button>
 
-          {/* Raccourci Démo & Lien Keygen */}
+          {/* Raccourci Démo */}
           <div className="pt-4 border-t border-slate-800/80 flex flex-col items-center gap-3">
             <button
               type="button"
@@ -281,17 +264,6 @@ export const HomePortal: React.FC<HomePortalProps> = ({ onOpenKeygen }) => {
               <Sparkles className="w-3.5 h-3.5 text-amber-400" />
               <span>Tester instantanément avec une clé démo</span>
             </button>
-
-            {onOpenKeygen && (
-              <button
-                type="button"
-                onClick={onOpenKeygen}
-                className="text-[11px] text-slate-500 hover:text-slate-300 transition-colors flex items-center gap-1"
-              >
-                <SlidersHorizontal className="w-3 h-3" />
-                <span>Besoin d'une nouvelle clé ? Ouvrir le Keygen</span>
-              </button>
-            )}
           </div>
 
         </form>

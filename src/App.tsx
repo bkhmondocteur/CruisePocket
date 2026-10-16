@@ -1,56 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useAuth } from './context/AuthContext';
 import { Header } from './components/common/Header';
 import { HomePortal } from './components/home/HomePortal';
 import { CompanyDashboard } from './components/company/CompanyDashboard';
 import { DoctorDashboard } from './components/doctor/DoctorDashboard';
-import { KeygenPortal } from './components/admin/KeygenPortal';
-import { ShieldCheck, KeyRound } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 
 export const App: React.FC = () => {
-  const { isAuthenticated, role, loginWithLicense } = useAuth();
-  
-  // Navigation vers le Keygen indépendant (séparé du flux normal)
-  const [isKeygenOpen, setIsKeygenOpen] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return window.location.hash === '#keygen';
-  });
-
-  useEffect(() => {
-    const handleHash = () => {
-      setIsKeygenOpen(window.location.hash === '#keygen');
-    };
-    window.addEventListener('hashchange', handleHash);
-    return () => window.removeEventListener('hashchange', handleHash);
-  }, []);
-
-  const openKeygen = () => {
-    window.location.hash = '#keygen';
-    setIsKeygenOpen(true);
-  };
-
-  const closeKeygen = () => {
-    window.location.hash = '';
-    setIsKeygenOpen(false);
-  };
+  const { isAuthenticated, role } = useAuth();
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-maritime-500 selection:text-white">
-      {/* Barre de navigation haute avec nouveau logo */}
-      <Header onOpenKeygen={openKeygen} />
+      {/* Barre de navigation haute */}
+      <Header />
 
       {/* Contenu principal */}
       <main className="flex-1 flex flex-col">
-        {isKeygenOpen ? (
-          <KeygenPortal 
-            onBackToApp={closeKeygen} 
-            onLoginWithKey={(key) => {
-              closeKeygen();
-              loginWithLicense(key);
-            }} 
-          />
-        ) : !isAuthenticated ? (
-          <HomePortal onOpenKeygen={openKeygen} />
+        {!isAuthenticated ? (
+          <HomePortal />
         ) : role === 'medecin' ? (
           <DoctorDashboard />
         ) : (
@@ -72,13 +39,6 @@ export const App: React.FC = () => {
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
               <span>Conforme STCW & OMI</span>
             </span>
-            <button
-              onClick={openKeygen}
-              className="text-cyan-400 hover:text-cyan-300 hover:underline flex items-center gap-1 font-medium"
-            >
-              <KeyRound className="w-3 h-3 text-amber-400" />
-              <span>Générateur de Clés (Keygen)</span>
-            </button>
           </div>
         </div>
       </footer>
