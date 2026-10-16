@@ -9,7 +9,10 @@ import { ShieldCheck, Anchor } from 'lucide-react';
 
 export const App: React.FC = () => {
   const { isAuthenticated, role } = useAuth();
-  const [isTestSandboxOpen, setIsTestSandboxOpen] = useState(false);
+  const [isTestSandboxOpen, setIsTestSandboxOpen] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.location.hash === '#test' || window.location.search.includes('test');
+  });
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-maritime-500 selection:text-white">
