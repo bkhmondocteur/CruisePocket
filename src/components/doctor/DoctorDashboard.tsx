@@ -180,14 +180,15 @@ export const DoctorDashboard: React.FC = () => {
       if (!isAssignedToMe) return false;
     }
 
-    const q = searchTerm.toLowerCase();
+    const q = searchTerm.toLowerCase().trim();
+    if (!q) return true;
     return (
-      c.last_name.toLowerCase().includes(q) ||
-      c.first_name.toLowerCase().includes(q) ||
-      c.passport_number.toLowerCase().includes(q) ||
-      c.cruise_company.toLowerCase().includes(q) ||
-      c.service_company_name.toLowerCase().includes(q) ||
-      (c.doctor_name && c.doctor_name.toLowerCase().includes(q))
+      (c.last_name || '').toLowerCase().includes(q) ||
+      (c.first_name || '').toLowerCase().includes(q) ||
+      (c.passport_number || '').toLowerCase().includes(q) ||
+      (c.cruise_company || '').toLowerCase().includes(q) ||
+      (c.service_company_name || '').toLowerCase().includes(q) ||
+      (c.doctor_name || '').toLowerCase().includes(q)
     );
   });
 

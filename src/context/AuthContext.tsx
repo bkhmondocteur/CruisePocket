@@ -34,10 +34,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [companyProfile, setCompanyProfile] = useState<ServiceCompany | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Restaurer la session à l'ouverture (Persistance PWA)
+  // Restaurer la session à l'ouverture (Persistance PWA avec isolation multi-onglets)
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(AUTH_STORAGE_KEY);
+      // 1. Priorité à la session de l'onglet courant (sessionStorage) pour permettre
+      // de tester simultanément le profil Médecin et le profil Société dans deux onglets différents
+      let saved = sessionStorage.getItem(AUTH_STORAGE_KEY);
+      if (!saved) {
+        // 2. Si l'onglet démarre vierge, repli sur localStorage (redémarrage PWA)
+        saved = localStorage.getItem(AUTH_STORAGE_KEY);
+      }
+
       if (saved) {
         const session: AuthSession = JSON.parse(saved);
         if (session.licenseKey && session.role) {
@@ -50,6 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             } else {
               setCompanyProfile((validation.profile as ServiceCompany) || session.companyProfile || null);
             }
+            sessionStorage.setItem(AUTH_STORAGE_KEY, saved);
           }
         }
       }
@@ -88,7 +96,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+      const serialized = JSON.stringify(session);
+      sessionStorage.setItem(AUTH_STORAGE_KEY, serialized);
+      localStorage.setItem(AUTH_STORAGE_KEY, serialized);
     } catch (err) {
       console.error('Erreur sauvegarde session:', err);
     }
@@ -103,6 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCompanyProfile(null);
     setTargetRole(null);
     try {
+      sessionStorage.removeItem(AUTH_STORAGE_KEY);
       localStorage.removeItem(AUTH_STORAGE_KEY);
     } catch (err) {
       console.error(err);
