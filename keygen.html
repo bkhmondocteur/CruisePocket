@@ -269,13 +269,24 @@
             <div id="result-key" class="text-lg sm:text-xl font-mono font-extrabold text-cyan-300 tracking-wider select-all"></div>
           </div>
 
-          <button
-            id="copy-btn"
-            onclick="copyResultKey()"
-            class="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500 text-white font-bold text-xs shadow-md transition-all shrink-0 flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <span id="copy-text">Copier la Clé</span>
-          </button>
+          <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <button
+              id="copy-btn"
+              onclick="copyResultKey()"
+              class="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500 text-white font-bold text-xs shadow-md transition-all shrink-0 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span id="copy-text">Copier la Clé</span>
+            </button>
+
+            <button
+              id="sync-app-btn"
+              onclick="transferResultToCruisePocket()"
+              class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-maritime-600 to-cyan-600 hover:from-maritime-500 hover:to-cyan-500 border border-cyan-400 text-white font-bold text-xs shadow-lg shadow-cyan-600/30 transition-all shrink-0 flex items-center justify-center gap-1.5 cursor-pointer"
+              title="Ouvre l'application CruisePocket et active immédiatement cette licence"
+            >
+              <span>🚢 Ouvrir & Synchroniser dans CruisePocket</span>
+            </button>
+          </div>
         </div>
 
         <div id="result-details" class="p-4 rounded-xl bg-slate-900/50 border border-slate-800/80 text-xs text-slate-300 grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
@@ -644,6 +655,39 @@
       });
     }
 
+    // --- SYNCHRONISATION DIRECTE AVEC CRUISE POCKET ---
+    function transferToCruisePocket(licenseKey) {
+      const list = getStoredLicenses();
+      const item = list.find(l => l.key.toUpperCase() === licenseKey.toUpperCase());
+      if (!item) {
+        alert("Licence introuvable.");
+        return;
+      }
+
+      let baseUrl = 'https://bkhmondocteur.github.io/CruisePocket/';
+      try {
+        if (window.location.protocol !== 'file:' && window.location.pathname.includes('CruisePocket')) {
+          baseUrl = window.location.origin + window.location.pathname.replace(/\/keygen\.html.*$/i, '') + '/';
+        }
+      } catch {}
+
+      const target = new URL(baseUrl);
+      target.searchParams.set('license', item.key);
+      target.searchParams.set('role', item.role);
+      target.searchParams.set('name', item.holderName);
+      target.searchParams.set('detail1', item.detail1 || '');
+      target.searchParams.set('detail2', item.detail2 || '');
+      target.searchParams.set('location', item.location || '');
+
+      window.open(target.toString(), '_blank');
+    }
+
+    function transferResultToCruisePocket() {
+      const key = document.getElementById('result-key').innerText.trim();
+      if (!key) return;
+      transferToCruisePocket(key);
+    }
+
     // --- GESTION DU REGISTRE ET DES RÉVOCATIONS ---
 
     function setFilter(filter) {
@@ -882,6 +926,14 @@
             <td class="p-3.5 text-right whitespace-nowrap">
               <div class="flex items-center justify-end gap-1.5">
                 ${isActive ? `
+                  <button
+                    onclick="transferToCruisePocket('${item.key}')"
+                    class="px-2.5 py-1 rounded-lg bg-cyan-950 hover:bg-cyan-900 text-cyan-300 border border-cyan-800 text-[10px] font-bold transition-all hover:scale-105 cursor-pointer shadow-sm flex items-center gap-1"
+                    title="Ouvrir CruisePocket et synchroniser ce compte immédiatement"
+                  >
+                    <span>🚢 Ouvrir PWA</span>
+                  </button>
+
                   <button
                     onclick="toggleRevokeLicense('${item.key}')"
                     class="px-2.5 py-1 rounded-lg bg-rose-950 hover:bg-rose-900 text-rose-300 border border-rose-800 text-[10px] font-bold transition-all hover:scale-105 cursor-pointer shadow-sm"

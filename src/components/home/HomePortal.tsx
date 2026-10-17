@@ -1,7 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Role } from '../../types';
 import { useAuth } from '../../context/AuthContext';
-import { getLicenseRegistry, isLicenseRevoked } from '../../utils/license';
+import { 
+  getLicenseRegistry, 
+  isLicenseRevoked, 
+  checkAndImportURLParams, 
+  importLicensesFromJSON 
+} from '../../utils/license';
 import { 
   Stethoscope, 
   Building2, 
@@ -9,7 +14,10 @@ import {
   ArrowRight, 
   ChevronLeft, 
   ShieldCheck, 
-  Info
+  Info,
+  Upload,
+  ExternalLink,
+  CheckCircle2
 } from 'lucide-react';
 
 export const HomePortal: React.FC = () => {
@@ -18,6 +26,24 @@ export const HomePortal: React.FC = () => {
   // Login State
   const [inputLicense, setInputLicense] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [importNotice, setImportNotice] = useState<string | null>(null);
+  const [registryTick, setRegistryTick] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Synchronisation automatique par URL si ouvert depuis le Keygen
+  useEffect(() => {
+    const res = checkAndImportURLParams();
+    if (res.imported && res.key && res.role) {
+      setTargetRole(res.role);
+      setInputLicense(res.key);
+      const loginRes = loginWithLicense(res.key, res.role);
+      if (loginRes.success) {
+        setImportNotice(`✓ Licence synchronisée automatiquement : ${res.key}`);
+      } else {
+        setLoginError(loginRes.error || null);
+      }
+    }
+  }, []);
 
   const handleSelectRole = (role: Role) => {
     setTargetRole(role);
@@ -42,11 +68,33 @@ export const HomePortal: React.FC = () => {
     }
   };
 
+  const handleImportJsonFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      const res = importLicensesFromJSON(content);
+      if (res.error) {
+        setImportNotice(`Erreur : ${res.error}`);
+      } else {
+        setImportNotice(`✓ ${res.count} licence(s) synchronisée(s) avec succès !`);
+        setRegistryTick(t => t + 1);
+        setTimeout(() => setImportNotice(null), 4000);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
   // Comptes formellement enregistrés et actifs pour le profil ciblé
-  const registry = getLicenseRegistry();
-  const registeredAccounts = targetRole === 'medecin'
-    ? Object.values(registry.doctors).filter(d => !isLicenseRevoked(d.license_key))
-    : Object.values(registry.companies).filter(c => !isLicenseRevoked(c.license_key));
+  const registeredAccounts = useMemo(() => {
+    const registry = getLicenseRegistry();
+    return targetRole === 'medecin'
+      ? Object.values(registry.doctors).filter(d => !isLicenseRevoked(d.license_key))
+      : Object.values(registry.companies).filter(c => !isLicenseRevoked(c.license_key));
+  }, [targetRole, registryTick]);
 
   // ============================================================================
   // VUE 1 : ÉCRAN INITIAL DE SÉLECTION DU PROFIL
@@ -54,6 +102,20 @@ export const HomePortal: React.FC = () => {
   if (!targetRole) {
     return (
       <div className="flex-1 flex flex-col justify-center items-center px-4 py-8 sm:py-12 max-w-4xl mx-auto w-full animate-fadeIn">
+        <input
+          type="file"
+          ref={fileInputRef}
+          accept=".json"
+          onChange={handleImportJsonFile}
+          className="hidden"
+        />
+
+        {importNotice && (
+          <div className="w-full max-w-md mb-6 p-3 rounded-xl bg-emerald-950/80 border border-emerald-700 text-emerald-300 text-xs flex items-center justify-center gap-2 animate-fadeIn shadow-lg">
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+            <span>{importNotice}</span>
+          </div>
+        )}
         
         {/* Logo Officiel CruisePocket */}
         <div className="flex flex-col items-center text-center max-w-2xl mx-auto mb-10">
@@ -145,8 +207,30 @@ export const HomePortal: React.FC = () => {
 
         </div>
 
+        {/* Barre d'outils Keygen & Synchronisation */}
+        <div className="mt-8 flex items-center justify-center gap-4 text-xs text-slate-400 flex-wrap">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="hover:text-cyan-400 flex items-center gap-1.5 transition-colors cursor-pointer bg-slate-900/60 px-3 py-1.5 rounded-xl border border-slate-800"
+          >
+            <Upload className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Synchroniser des Licences (.json)</span>
+          </button>
+          <a
+            href="./keygen.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-emerald-400 flex items-center gap-1.5 transition-colors bg-slate-900/60 px-3 py-1.5 rounded-xl border border-slate-800"
+          >
+            <KeyRound className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Générateur de Licences Keygen</span>
+            <ExternalLink className="w-3 h-3 text-slate-500" />
+          </a>
+        </div>
+
         {/* Note de sécurité */}
-        <div className="mt-12 flex items-center justify-center gap-2 text-xs text-slate-500">
+        <div className="mt-8 flex items-center justify-center gap-2 text-xs text-slate-500">
           <ShieldCheck className="w-4 h-4 text-emerald-400" />
           <span>Authentification sécurisée par Clé de Licence officielle STCW & OMI.</span>
         </div>
@@ -174,6 +258,23 @@ export const HomePortal: React.FC = () => {
           Changer de profil
         </button>
       </div>
+
+      {/* Input de fichier caché pour importer le JSON du Keygen */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept=".json"
+        onChange={handleImportJsonFile}
+        className="hidden"
+      />
+
+      {/* Notification de synchronisation */}
+      {importNotice && (
+        <div className="w-full mb-4 p-3 rounded-xl bg-emerald-950/80 border border-emerald-700 text-emerald-300 text-xs flex items-center gap-2 animate-fadeIn shadow-lg">
+          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+          <span>{importNotice}</span>
+        </div>
+      )}
 
       {/* Boîte Principale de Connexion */}
       <div className="w-full glass-panel rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-2xl relative space-y-6">
@@ -229,7 +330,7 @@ export const HomePortal: React.FC = () => {
 
           <button
             type="submit"
-            className={`w-full py-3.5 px-4 rounded-xl font-bold text-sm text-white shadow-lg transition-all flex items-center justify-center gap-2 ${
+            className={`w-full py-3.5 px-4 rounded-xl font-bold text-sm text-white shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${
               isMed 
                 ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-600/20' 
                 : 'bg-gradient-to-r from-maritime-600 to-cyan-600 hover:from-maritime-500 hover:to-cyan-500 shadow-cyan-600/20'
@@ -273,10 +374,36 @@ export const HomePortal: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <p className="text-[11px] text-amber-400/90 bg-amber-950/30 p-2.5 rounded-xl border border-amber-900/40 leading-relaxed text-center">
-                Aucun compte {isMed ? 'médecin' : 'société'} enregistré dans le système. Veuillez générer et enregistrer une licence via le Keygen CruisePocket.
-              </p>
+              <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-400 text-[11px] leading-relaxed text-center space-y-1">
+                <p className="text-white font-medium">💡 Vous disposez d'une clé Keygen ?</p>
+                <p>Saisissez simplement votre clé ci-dessus pour ouvrir votre session immédiatement.</p>
+              </div>
             )}
+          </div>
+
+          {/* Outils de Synchronisation Keygen */}
+          <div className="pt-3 border-t border-slate-900 flex items-center justify-between text-[11px] text-slate-400">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="hover:text-cyan-400 flex items-center gap-1 transition-colors cursor-pointer"
+              title="Importer un fichier JSON exporté depuis le Keygen"
+            >
+              <Upload className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Importer Licences JSON</span>
+            </button>
+
+            <a
+              href="./keygen.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-emerald-400 flex items-center gap-1 transition-colors"
+              title="Accéder au Keygen en ligne"
+            >
+              <KeyRound className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Générateur Keygen</span>
+              <ExternalLink className="w-3 h-3 text-slate-500" />
+            </a>
           </div>
 
         </form>

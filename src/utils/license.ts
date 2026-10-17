@@ -200,7 +200,7 @@ export function getLicenseRegistry(): {
   return { doctors, companies };
 }
 
-function saveRegisteredLicense(role: Role, key: string, data: Doctor | ServiceCompany) {
+export function saveRegisteredLicense(role: Role, key: string, data: Doctor | ServiceCompany) {
   const registry = getLicenseRegistry();
   const keyUpper = key.trim().toUpperCase();
   if (role === 'medecin') {
@@ -210,8 +210,178 @@ function saveRegisteredLicense(role: Role, key: string, data: Doctor | ServiceCo
   }
   try {
     localStorage.setItem(REGISTRY_STORAGE_KEY, JSON.stringify(registry));
+
+    // Mettre à jour également cruisepocket_registered_licenses pour compatibilité totale avec le Keygen
+    const rawList = localStorage.getItem(STORAGE_KEY_LICENSES);
+    const list: any[] = rawList ? JSON.parse(rawList) : [];
+    const existingIdx = list.findIndex((item: any) => item.key?.toUpperCase() === keyUpper);
+    const newEntry = {
+      key: keyUpper,
+      role,
+      holderName: role === 'medecin' ? (data as Doctor).full_name : (data as ServiceCompany).name,
+      detail1: role === 'medecin' ? (data as Doctor).order_number : (data as ServiceCompany).manager_name,
+      detail2: role === 'medecin' ? 'Devise: DT' : (data as ServiceCompany).phone,
+      location: role === 'medecin' ? (data as Doctor).practice_location : (data as ServiceCompany).location,
+      createdAt: data.created_at || new Date().toISOString(),
+      status: 'active'
+    };
+
+    if (existingIdx >= 0) {
+      list[existingIdx] = newEntry;
+    } else {
+      list.unshift(newEntry);
+    }
+    localStorage.setItem(STORAGE_KEY_LICENSES, JSON.stringify(list));
   } catch (e) {
     console.error('Erreur sauvegarde registre:', e);
+  }
+}
+
+/**
+ * Vérifie mathématiquement la signature cryptographique d'une clé produite par le Keygen
+ */
+export function verifyLicenseSignature(key: string): {
+  isValid: boolean;
+  role: Role | null;
+  slug?: string;
+  hash?: string;
+  checksum?: string;
+  error?: string;
+} {
+  const trimmed = key.trim().toUpperCase();
+  const parts = trimmed.split('-');
+
+  // Format standard généré par le Keygen : CP-MED-XXXXX-XXXXXX-XXXX (5 segments) ou CP-SOC-XXXX-XXXXXX-XXXX
+  if (parts.length >= 5 && parts[0] === 'CP') {
+    const rolePrefix = `${parts[0]}-${parts[1]}`; // 'CP-MED' ou 'CP-SOC'
+    const detectedRole: Role | null = parts[1] === 'MED' ? 'medecin' : parts[1] === 'SOC' ? 'societe' : null;
+
+    if (!detectedRole) {
+      return { isValid: false, role: null, error: 'Type de licence non reconnu.' };
+    }
+
+    const slug = parts[2];
+    const coreHash = parts[3];
+    const providedChecksum = parts[4];
+    const expectedChecksum = generateChecksum(rolePrefix, `${slug}-${coreHash}`);
+
+    if (expectedChecksum === providedChecksum) {
+      return { isValid: true, role: detectedRole, slug, hash: coreHash, checksum: providedChecksum };
+    } else {
+      return { isValid: false, role: detectedRole, error: 'Signature de licence invalide ou clé altérée.' };
+    }
+  }
+
+  return { isValid: false, role: null, error: 'Format de licence incomplet.' };
+}
+
+/**
+ * Importation en masse de licences depuis un export JSON du Keygen
+ */
+export function importLicensesFromJSON(jsonString: string): { count: number; error?: string } {
+  try {
+    const data = JSON.parse(jsonString);
+    const list = Array.isArray(data) ? data : (data.licenses || []);
+    if (!Array.isArray(list) || list.length === 0) {
+      return { count: 0, error: 'Aucune licence trouvée dans le fichier.' };
+    }
+
+    let count = 0;
+    list.forEach((item: any) => {
+      const keyUpper = item.key?.trim().toUpperCase();
+      if (!keyUpper || FICTIVE_LICENSE_KEYS.includes(keyUpper) || FICTIVE_NAMES.includes(item.holderName)) {
+        return;
+      }
+
+      const sig = verifyLicenseSignature(keyUpper);
+      if (!sig.isValid || !sig.role) return;
+
+      if (sig.role === 'medecin') {
+        const doc: Doctor = {
+          id: `med-${sig.hash?.toLowerCase() || Math.random().toString(36).slice(2, 8)}`,
+          full_name: item.holderName || `Dr. Médecin (${sig.slug})`,
+          order_number: item.detail1?.replace(/^Ordre:\s*/i, '') || sig.slug || 'Agréé',
+          practice_location: item.location || 'Cabinet Médical Agréé',
+          license_key: keyUpper,
+          created_at: item.createdAt || new Date().toISOString()
+        };
+        saveRegisteredLicense('medecin', keyUpper, doc);
+        count++;
+      } else {
+        const comp: ServiceCompany = {
+          id: `soc-${sig.hash?.toLowerCase() || Math.random().toString(36).slice(2, 8)}`,
+          name: item.holderName || `Société Maritime (${sig.slug})`,
+          manager_name: item.detail1?.replace(/^Resp:\s*/i, '') || 'Responsable Opérations',
+          phone: item.detail2?.replace(/^Tél:\s*/i, '') || '',
+          location: item.location || sig.slug || 'Port Maritime',
+          license_key: keyUpper,
+          created_at: item.createdAt || new Date().toISOString()
+        };
+        saveRegisteredLicense('societe', keyUpper, comp);
+        count++;
+      }
+    });
+
+    return { count };
+  } catch (e: any) {
+    return { count: 0, error: e.message || 'Format JSON invalide.' };
+  }
+}
+
+/**
+ * Capture et synchronise automatiquement une licence transmise par paramètre d'URL
+ */
+export function checkAndImportURLParams(): { imported: boolean; key?: string; role?: Role; profile?: Doctor | ServiceCompany } {
+  if (typeof window === 'undefined') return { imported: false };
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const key = params.get('license') || params.get('import_license') || params.get('key');
+    if (!key) return { imported: false };
+
+    const keyUpper = key.trim().toUpperCase();
+    const sig = verifyLicenseSignature(keyUpper);
+    if (!sig.isValid || !sig.role) return { imported: false };
+
+    const role = sig.role;
+    const name = params.get('name') || params.get('holderName') || '';
+    const detail1 = params.get('detail1') || params.get('order') || params.get('manager') || '';
+    const detail2 = params.get('detail2') || params.get('phone') || '';
+    const location = params.get('location') || sig.slug || '';
+
+    let profile: Doctor | ServiceCompany;
+
+    if (role === 'medecin') {
+      profile = {
+        id: `med-${sig.hash?.toLowerCase() || 'usr'}`,
+        full_name: name || `Dr. Médecin Agréé (${sig.slug})`,
+        order_number: detail1 || sig.slug || 'Agréé',
+        practice_location: location || 'Cabinet Médical Agréé',
+        license_key: keyUpper,
+        created_at: new Date().toISOString()
+      };
+      saveRegisteredLicense('medecin', keyUpper, profile);
+    } else {
+      profile = {
+        id: `soc-${sig.hash?.toLowerCase() || 'usr'}`,
+        name: name || `Société Maritime (${sig.slug})`,
+        manager_name: detail1 || 'Responsable Opérations',
+        phone: detail2 || '',
+        location: location || sig.slug || 'Port Maritime',
+        license_key: keyUpper,
+        created_at: new Date().toISOString()
+      };
+      saveRegisteredLicense('societe', keyUpper, profile);
+    }
+
+    // Nettoyer les paramètres de l'URL pour une expérience propre
+    try {
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    } catch {}
+
+    return { imported: true, key: keyUpper, role, profile };
+  } catch {
+    return { imported: false };
   }
 }
 
@@ -282,24 +452,11 @@ export function validateLicense(key: string, expectedRole?: Role): {
     return { isValid: false, role: null, error: 'Veuillez saisir votre clé de licence.' };
   }
 
-  const isDoctor = trimmed.startsWith('CP-MED-');
-  const isCompany = trimmed.startsWith('CP-SOC-');
-
-  if (!isDoctor && !isCompany) {
-    return { 
-      isValid: false, 
-      role: null, 
-      error: 'Format de clé invalide. La clé doit débuter par CP-MED- ou CP-SOC-.' 
-    };
-  }
-
-  const detectedRole: Role = isDoctor ? 'medecin' : 'societe';
-
   // Contrôle de licence fictive révoquée / supprimée
   if (FICTIVE_LICENSE_KEYS.includes(trimmed)) {
     return {
       isValid: false,
-      role: detectedRole,
+      role: null,
       error: 'Cette licence fictive de démonstration a été supprimée. Veuillez utiliser votre licence officielle enregistrée.'
     };
   }
@@ -308,10 +465,22 @@ export function validateLicense(key: string, expectedRole?: Role): {
   if (isLicenseRevoked(trimmed)) {
     return {
       isValid: false,
-      role: detectedRole,
+      role: null,
       error: 'Cette clé de licence a été RÉVOQUÉE par l\'administrateur. L\'accès à CruisePocket est désactivé.'
     };
   }
+
+  // 1. Contrôle de conformité et de signature cryptographique issue du Keygen
+  const sig = verifyLicenseSignature(trimmed);
+  if (!sig.isValid || !sig.role) {
+    return {
+      isValid: false,
+      role: null,
+      error: sig.error || 'Format de clé invalide ou signature altérée. Veuillez vérifier votre clé.'
+    };
+  }
+
+  const detectedRole = sig.role;
 
   if (expectedRole && detectedRole !== expectedRole) {
     return {
@@ -323,25 +492,38 @@ export function validateLicense(key: string, expectedRole?: Role): {
     };
   }
 
-  // Vérifier la conformité de la structure en 4 parties
-  const parts = trimmed.split('-');
-  if (parts.length < 4) {
-    return { isValid: false, role: detectedRole, error: 'Structure de licence incomplète.' };
-  }
-
-  // Rechercher dans le registre des licences locales
+  // 2. Rechercher dans le registre des licences locales
   const registry = getLicenseRegistry();
-  const profile = detectedRole === 'medecin' 
+  let profile = detectedRole === 'medecin' 
     ? registry.doctors[trimmed] 
     : registry.companies[trimmed];
 
-  // Règle formelle : Ne garder que les licences et profils déjà enregistrés
+  // 3. Synchronisation automatique :
+  // Si la clé possède une signature mathématique valide issue du Keygen mais n'est pas encore présente
+  // dans le stockage local de ce domaine (ex: générée sur le bureau ou exportée), on l'enregistre formellement !
   if (!profile) {
-    return {
-      isValid: false,
-      role: detectedRole,
-      error: `Cette clé n'est pas encore enregistrée. Veuillez générer et enregistrer votre licence dans le Keygen CruisePocket.`
-    };
+    if (detectedRole === 'medecin') {
+      profile = {
+        id: `med-${sig.hash?.toLowerCase() || 'usr'}`,
+        full_name: `Dr. Médecin Agréé (${sig.slug})`,
+        order_number: sig.slug || 'Agréé',
+        practice_location: 'Cabinet Médical Agréé',
+        license_key: trimmed,
+        created_at: new Date().toISOString()
+      } as Doctor;
+      saveRegisteredLicense('medecin', trimmed, profile);
+    } else {
+      profile = {
+        id: `soc-${sig.hash?.toLowerCase() || 'usr'}`,
+        name: `Société de Service Maritime (${sig.slug})`,
+        manager_name: 'Responsable Opérations',
+        phone: '',
+        location: sig.slug || 'Port Maritime',
+        license_key: trimmed,
+        created_at: new Date().toISOString()
+      } as ServiceCompany;
+      saveRegisteredLicense('societe', trimmed, profile);
+    }
   }
 
   const profileName = detectedRole === 'medecin' ? (profile as Doctor).full_name : (profile as ServiceCompany).name;

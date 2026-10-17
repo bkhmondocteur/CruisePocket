@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-slate-950">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CruisePocket - Keygen & Gestion des Licences</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            maritime: {
+              400: '#38bdf8',
+              500: '#0284c7',
+              600: '#0369a1',
+              700: '#075985',
+              800: '#0c4a6e',
+              900: '#082f49',
+              950: '#041c2c',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    /* Scrollbar personnalisée */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #090d16;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+  </style>
+</head>
+<body class="min-h-full bg-slate-950 text-slate-100 flex flex-col antialiased selection:bg-cyan-500 selection:text-white p-4 sm:p-8">
+
+  <!-- Conteneur Principal -->
+  <div class="max-w-5xl mx-auto w-full space-y-8">
+
+    <!-- En-tête -->
+    <header class="glass-panel rounded-3xl p-6 sm:p-8 border-l-4 border-cyan-500 shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+      <div class="space-y-1">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 mb-2">
+          <span>⚓ Console d'Administration Maritime</span>
+          <span class="text-slate-500">•</span>
+          <span class="text-amber-400">Keygen & Gestion des Licences</span>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
+          Cruise<span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400">Pocket</span> Keygen
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-400">
+          Générateur de clés d'accès, registre des licences actives et module de révocation immédiate.
+        </p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div class="px-4 py-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-center">
+          <div class="text-[10px] uppercase font-bold text-slate-500">Mode</div>
+          <div class="text-xs font-mono font-bold text-emerald-400 flex items-center gap-1.5 justify-center">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Autonome / Hors-Ligne</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- SECTION 1 : STATISTIQUES EN TEMPS RÉEL -->
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      <div class="glass-panel p-4 rounded-2xl border border-slate-800/80 text-center">
+        <span class="text-[10px] uppercase tracking-wider font-bold text-slate-500 block mb-1">Total Licences</span>
+        <span id="stat-total" class="text-2xl font-black text-white font-mono">0</span>
+      </div>
+
+      <div class="glass-panel p-4 rounded-2xl border border-emerald-500/30 text-center bg-emerald-950/10">
+        <span class="text-[10px] uppercase tracking-wider font-bold text-emerald-400 block mb-1">🟢 Actives</span>
+        <span id="stat-active" class="text-2xl font-black text-emerald-400 font-mono">0</span>
+      </div>
+
+      <div class="glass-panel p-4 rounded-2xl border border-rose-500/30 text-center bg-rose-950/10">
+        <span class="text-[10px] uppercase tracking-wider font-bold text-rose-400 block mb-1">🔴 Révoquées</span>
+        <span id="stat-revoked" class="text-2xl font-black text-rose-400 font-mono">0</span>
+      </div>
+
+      <div class="glass-panel p-4 rounded-2xl border border-slate-800/80 text-center">
+        <span class="text-[10px] uppercase tracking-wider font-bold text-slate-400 block mb-1">🩺 Médecins</span>
+        <span id="stat-medecins" class="text-2xl font-black text-cyan-300 font-mono">0</span>
+      </div>
+
+      <div class="glass-panel p-4 rounded-2xl border border-slate-800/80 text-center col-span-2 sm:col-span-1">
+        <span class="text-[10px] uppercase tracking-wider font-bold text-slate-400 block mb-1">🏢 Sociétés</span>
+        <span id="stat-societes" class="text-2xl font-black text-indigo-300 font-mono">0</span>
+      </div>
+    </div>
+
+    <!-- SECTION 2 : GÉNÉRATEUR DE LICENCE (MÉDECIN / SOCIÉTÉ) -->
+    <div class="space-y-4">
+      
+      <!-- Onglets de Sélection : Médecin vs Société -->
+      <div class="flex items-center p-1.5 rounded-2xl bg-slate-900/90 border border-slate-800 max-w-md mx-auto">
+        <button
+          id="tab-medecin"
+          onclick="switchTab('medecin')"
+          class="flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm cursor-pointer"
+        >
+          <span>🩺 Licence Médecin</span>
+        </button>
+
+        <button
+          id="tab-societe"
+          onclick="switchTab('societe')"
+          class="flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 text-slate-400 hover:text-white cursor-pointer"
+        >
+          <span>🏢 Licence Société</span>
+        </button>
+      </div>
+
+      <!-- FORMULAIRE MÉDECIN -->
+      <div id="form-medecin" class="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-2xl space-y-6">
+        <div class="border-b border-slate-800/80 pb-4">
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <span class="text-emerald-400">Générateur Clé Médecin Agréé</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">
+            Champs requis : Nom/Prénom, Numéro d'Ordre et Lieu d'exercice. La clé générée est automatiquement ajoutée à la liste des licences actives.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Nom et Prénom du Médecin *</label>
+            <input
+              type="text"
+              id="doc-name"
+              placeholder="Ex: Dr. Nom Prénom"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Numéro d'Ordre *</label>
+            <input
+              type="text"
+              id="doc-order"
+              placeholder="Ex: 13/98745"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Lieu d'Exercice *</label>
+            <input
+              type="text"
+              id="doc-location"
+              placeholder="Ex: Marseille Port Autonome"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+        </div>
+
+        <div class="pt-2">
+          <button
+            onclick="generateDoctor()"
+            class="w-full py-3.5 px-4 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-lg shadow-emerald-600/20 transition-all transform active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <span>Générer et Activer la Licence Médecin</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- FORMULAIRE SOCIÉTÉ -->
+      <div id="form-societe" class="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-2xl space-y-6 hidden">
+        <div class="border-b border-slate-800/80 pb-4">
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <span class="text-cyan-400">Générateur Clé Société de Service</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">
+            Champs requis : Nom de la société, Nom/Prénom du responsable, Téléphone et Localisation. La clé générée est automatiquement ajoutée à la liste des licences actives.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Nom de la Société *</label>
+            <input
+              type="text"
+              id="soc-name"
+              placeholder="Ex: Agence Maritime de Crewing"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Nom / Prénom du Responsable *</label>
+            <input
+              type="text"
+              id="soc-manager"
+              placeholder="Ex: Nom du Responsable"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Téléphone *</label>
+            <input
+              type="text"
+              id="soc-phone"
+              placeholder="Ex: +216 71 00 00 00"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Localisation (Ville / Port) *</label>
+            <input
+              type="text"
+              id="soc-location"
+              placeholder="Ex: Tunis La Goulette"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            />
+          </div>
+        </div>
+
+        <div class="pt-2">
+          <button
+            onclick="generateCompany()"
+            class="w-full py-3.5 px-4 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-maritime-600 via-cyan-600 to-emerald-600 hover:from-maritime-500 hover:to-emerald-500 shadow-lg shadow-cyan-600/20 transition-all transform active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <span>Générer et Activer la Licence Société</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- RÉSULTAT DE LA DERNIÈRE CLÉ GÉNÉRÉE -->
+      <div id="result-box" class="glass-panel rounded-3xl p-6 sm:p-8 border border-emerald-500/50 shadow-2xl space-y-4 hidden animate-fadeIn">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2 text-emerald-400 font-bold text-sm">
+            <span>✓ Clé Générée et Enregistrée avec Succès</span>
+          </div>
+          <span id="result-role-badge" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-200"></span>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="space-y-1">
+            <div class="text-[10px] uppercase font-bold text-slate-500">Clé de Licence (Token de Connexion)</div>
+            <div id="result-key" class="text-lg sm:text-xl font-mono font-extrabold text-cyan-300 tracking-wider select-all"></div>
+          </div>
+
+          <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <button
+              id="copy-btn"
+              onclick="copyResultKey()"
+              class="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500 text-white font-bold text-xs shadow-md transition-all shrink-0 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span id="copy-text">Copier la Clé</span>
+            </button>
+
+            <button
+              id="sync-app-btn"
+              onclick="transferResultToCruisePocket()"
+              class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-maritime-600 to-cyan-600 hover:from-maritime-500 hover:to-cyan-500 border border-cyan-400 text-white font-bold text-xs shadow-lg shadow-cyan-600/30 transition-all shrink-0 flex items-center justify-center gap-1.5 cursor-pointer"
+              title="Ouvre l'application CruisePocket et active immédiatement cette licence"
+            >
+              <span>🚢 Ouvrir & Synchroniser dans CruisePocket</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="result-details" class="p-4 rounded-xl bg-slate-900/50 border border-slate-800/80 text-xs text-slate-300 grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
+      </div>
+
+    </div>
+
+    <!-- SECTION 3 : REGISTRE DES LICENCES ACTIVES & RÉVOCATION -->
+    <div class="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-2xl space-y-6">
+      
+      <!-- En-tête du registre -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <span>📋 Registre des Licences & Révocations</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Gérez toutes les licences créées. La révocation bloque immédiatement l'accès à l'application CruisePocket.
+          </p>
+        </div>
+
+        <!-- Boutons d'actions globales -->
+        <div class="flex items-center gap-2 flex-wrap">
+          <button
+            onclick="promptManualRevoke()"
+            class="px-3.5 py-2 rounded-xl bg-rose-950 hover:bg-rose-900 border border-rose-700 text-rose-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+            title="Saisir ou coller une clé pour la révoquer"
+          >
+            <span>🚫 Révoquer une clé manuelle</span>
+          </button>
+
+          <button
+            onclick="exportLicensesJson()"
+            class="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer"
+            title="Exporter la liste en format JSON"
+          >
+            <span>💾 Exporter</span>
+          </button>
+
+          <label
+            class="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer"
+            title="Importer une liste JSON"
+          >
+            <span>📂 Importer</span>
+            <input type="file" accept=".json" onchange="importLicensesJson(event)" class="hidden" />
+          </label>
+        </div>
+      </div>
+
+      <!-- Filtres et Recherche -->
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        
+        <!-- Onglets Filtres Statut / Rôle -->
+        <div class="flex items-center gap-1 p-1 rounded-xl bg-slate-950 border border-slate-800 overflow-x-auto text-[11px] font-bold">
+          <button onclick="setFilter('all')" id="btn-filter-all" class="px-3 py-1.5 rounded-lg bg-cyan-600 text-white cursor-pointer transition-all">
+            Toutes (<span id="count-all">0</span>)
+          </button>
+          <button onclick="setFilter('active')" id="btn-filter-active" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white cursor-pointer transition-all">
+            Actives (<span id="count-active">0</span>)
+          </button>
+          <button onclick="setFilter('revoked')" id="btn-filter-revoked" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white cursor-pointer transition-all">
+            Révoquées (<span id="count-revoked">0</span>)
+          </button>
+          <button onclick="setFilter('medecin')" id="btn-filter-medecin" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white cursor-pointer transition-all">
+            Médecins (<span id="count-medecin">0</span>)
+          </button>
+          <button onclick="setFilter('societe')" id="btn-filter-societe" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white cursor-pointer transition-all">
+            Sociétés (<span id="count-societe">0</span>)
+          </button>
+        </div>
+
+        <!-- Barre de recherche textuelle -->
+        <div class="relative min-w-[240px]">
+          <input
+            type="text"
+            id="search-input"
+            oninput="renderLicensesTable()"
+            placeholder="Rechercher par nom, clé, lieu..."
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+          />
+        </div>
+
+      </div>
+
+      <!-- TABLEAU DES LICENCES -->
+      <div class="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/60">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-900/80 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-800">
+            <tr>
+              <th class="p-3.5">Statut</th>
+              <th class="p-3.5">Profil</th>
+              <th class="p-3.5">Clé de Licence</th>
+              <th class="p-3.5">Bénéficiaire & Détails</th>
+              <th class="p-3.5">Émission</th>
+              <th class="p-3.5 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody id="licenses-tbody" class="divide-y divide-slate-800/60 text-slate-300">
+            <!-- Rendu dynamique via JavaScript -->
+          </tbody>
+        </table>
+
+        <!-- Message Liste Vide -->
+        <div id="empty-state" class="p-8 text-center text-slate-500 text-xs hidden">
+          Aucune licence ne correspond aux filtres appliqués.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SECTION 4 : VÉRIFICATEUR RAPIDE -->
+    <div class="glass-panel rounded-3xl p-6 border border-slate-800 space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">
+          🔍 Testeur & Vérificateur de Clé
+        </h3>
+        <span class="text-[10px] text-slate-500">Contrôle la validité et le statut de révocation</span>
+      </div>
+
+      <div class="flex gap-2">
+        <input
+          type="text"
+          id="test-key-input"
+          placeholder="Collez une clé de licence pour tester (ex: CP-MED-... ou CP-SOC-...)"
+          class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs font-mono text-cyan-300 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+        />
+        <button
+          onclick="verifyKey()"
+          class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white font-bold text-xs transition-all cursor-pointer"
+        >
+          Tester la clé
+        </button>
+      </div>
+
+      <div id="verify-result" class="text-xs hidden p-3 rounded-xl"></div>
+    </div>
+
+  </div>
+
+  <!-- SCRIPT LOGIQUE & PERSISTANCE -->
+  <script>
+    // Clés de stockage synchronisées avec CruisePocket
+    const STORAGE_KEY_LICENSES = 'cruisepocket_registered_licenses';
+    const STORAGE_KEY_REVOKED = 'cruisepocket_revoked_licenses';
+
+    // Données par défaut initiales (vide : seules les licences enregistrées sont conservées)
+    const DEFAULT_LICENSES = [];
+    const FICTIVE_KEYS = [
+      'CP-MED-13987-A1B2C3-4E8F',
+      'CP-SOC-MARS-D4E5F6-7A9B',
+      'CP-MED-24552-D8E9F1-3A4B',
+      'CP-MED-75104-C4B2A1-9F8E',
+      'med-demo-1',
+      'soc-demo-1'
+    ];
+    const FICTIVE_NAMES = [
+      'Dr. Jean-Marc FERRARI',
+      'Dr. Leila BEN SALAH',
+      'Dr. Philippe TARDIEU',
+      'TransMed Crewing Services',
+      'Azur Crewing Agency'
+    ];
+
+    let currentFilter = 'all';
+
+    // Chargement du registre
+    function getStoredLicenses() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_LICENSES);
+        let list = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(list)) list = [];
+
+        // Purge automatique des licences et comptes fictifs
+        const filtered = list.filter(l => 
+          !FICTIVE_KEYS.includes(l.key) && 
+          !FICTIVE_NAMES.includes(l.holderName)
+        );
+
+        if (raw && filtered.length !== list.length) {
+          saveStoredLicenses(filtered);
+        }
+        return filtered;
+      } catch {
+        return [];
+      }
+    }
+
+    function saveStoredLicenses(licenses) {
+      try {
+        localStorage.setItem(STORAGE_KEY_LICENSES, JSON.stringify(licenses));
+        // Met à jour la liste des clés révoquées pour CruisePocket
+        const revokedKeys = licenses.filter(l => l.status === 'revoked').map(l => l.key.toUpperCase());
+        localStorage.setItem(STORAGE_KEY_REVOKED, JSON.stringify(revokedKeys));
+      } catch (e) {
+        console.error("Erreur sauvegarde licences:", e);
+      }
+    }
+
+    function getRevokedKeysList() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_REVOKED);
+        return raw ? JSON.parse(raw) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    // Algorithmes de hachage et checksum identiques à CruisePocket
+    function hashString(str) {
+      let hash = 5381;
+      for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) + hash) + str.charCodeAt(i);
+        hash = hash & hash;
+      }
+      return Math.abs(hash).toString(16).toUpperCase().padStart(8, '0');
+    }
+
+    function generateChecksum(prefix, seed) {
+      const combined = `${prefix}:${seed}:CRUISE_POCKET_SALT_2026`;
+      return hashString(combined).substring(0, 4);
+    }
+
+    // Gestion des onglets
+    function switchTab(role) {
+      const tabMed = document.getElementById('tab-medecin');
+      const tabSoc = document.getElementById('tab-societe');
+      const formMed = document.getElementById('form-medecin');
+      const formSoc = document.getElementById('form-societe');
+
+      if (role === 'medecin') {
+        tabMed.className = "flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm cursor-pointer";
+        tabSoc.className = "flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 text-slate-400 hover:text-white cursor-pointer";
+        formMed.classList.remove('hidden');
+        formSoc.classList.add('hidden');
+      } else {
+        tabSoc.className = "flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-sm cursor-pointer";
+        tabMed.className = "flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 text-slate-400 hover:text-white cursor-pointer";
+        formSoc.classList.remove('hidden');
+        formMed.classList.add('hidden');
+      }
+    }
+
+    // Génération Médecin
+    function generateDoctor() {
+      const name = document.getElementById('doc-name').value.trim();
+      const order = document.getElementById('doc-order').value.trim();
+      const location = document.getElementById('doc-location').value.trim();
+
+      if (!name || !order || !location) {
+        alert("Veuillez renseigner les 3 champs : Nom/Prénom, Numéro d'Ordre et Lieu.");
+        return;
+      }
+
+      const cleanOrder = order.replace(/[^a-zA-Z0-9]/g, '');
+      const orderSlug = cleanOrder.substring(0, 5).toUpperCase().padEnd(5, '0');
+      const rawData = `${name.toLowerCase()}|${cleanOrder}|${location.toLowerCase()}`;
+      const coreHash = hashString(rawData).substring(0, 6);
+      const checksum = generateChecksum('CP-MED', `${orderSlug}-${coreHash}`);
+
+      const key = `CP-MED-${orderSlug}-${coreHash}-${checksum}`;
+
+      // Ajout au registre des licences actives
+      const newLicense = {
+        key,
+        role: 'medecin',
+        holderName: name,
+        detail1: `Ordre: ${order}`,
+        detail2: 'Devise: DT',
+        location: location,
+        createdAt: new Date().toISOString(),
+        status: 'active'
+      };
+
+      addOrUpdateLicense(newLicense);
+
+      showResult(key, 'Médecin Agréé', [
+        { label: 'Titulaire', val: name },
+        { label: "N° d'Ordre", val: order },
+        { label: 'Lieu', val: location },
+        { label: 'Statut', val: '🟢 Actif' }
+      ]);
+    }
+
+    // Génération Société
+    function generateCompany() {
+      const name = document.getElementById('soc-name').value.trim();
+      const manager = document.getElementById('soc-manager').value.trim();
+      const phone = document.getElementById('soc-phone').value.trim();
+      const location = document.getElementById('soc-location').value.trim();
+
+      if (!name || !manager || !phone || !location) {
+        alert("Veuillez renseigner tous les champs de la société.");
+        return;
+      }
+
+      const locSlug = (location.replace(/[^a-zA-Z]/g, '').substring(0, 4) || 'PORT').toUpperCase().padEnd(4, 'X');
+      const rawData = `${name.toLowerCase()}|${manager.toLowerCase()}|${phone}|${location.toLowerCase()}`;
+      const coreHash = hashString(rawData).substring(0, 6);
+      const checksum = generateChecksum('CP-SOC', `${locSlug}-${coreHash}`);
+
+      const key = `CP-SOC-${locSlug}-${coreHash}-${checksum}`;
+
+      // Ajout au registre des licences actives
+      const newLicense = {
+        key,
+        role: 'societe',
+        holderName: name,
+        detail1: `Resp: ${manager}`,
+        detail2: `Tél: ${phone}`,
+        location: location,
+        createdAt: new Date().toISOString(),
+        status: 'active'
+      };
+
+      addOrUpdateLicense(newLicense);
+
+      showResult(key, 'Société de Service', [
+        { label: 'Société', val: name },
+        { label: 'Responsable', val: manager },
+        { label: 'Téléphone', val: phone },
+        { label: 'Statut', val: '🟢 Actif' }
+      ]);
+    }
+
+    function addOrUpdateLicense(license) {
+      const list = getStoredLicenses();
+      const index = list.findIndex(l => l.key.toUpperCase() === license.key.toUpperCase());
+      if (index >= 0) {
+        list[index] = { ...list[index], ...license, status: 'active', revokedAt: undefined };
+      } else {
+        list.unshift(license);
+      }
+      saveStoredLicenses(list);
+      renderLicensesTable();
+    }
+
+    function showResult(key, roleName, details) {
+      document.getElementById('result-key').innerText = key;
+      document.getElementById('result-role-badge').innerText = roleName;
+
+      const detailsDiv = document.getElementById('result-details');
+      detailsDiv.innerHTML = details.map(d => `
+        <div>
+          <span class="text-slate-500 block text-[10px]">${d.label}</span>
+          <span class="font-semibold text-white">${d.val}</span>
+        </div>
+      `).join('');
+
+      document.getElementById('result-box').classList.remove('hidden');
+      document.getElementById('result-box').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function copyResultKey() {
+      const key = document.getElementById('result-key').innerText;
+      copyToClipboard(key, 'copy-text');
+    }
+
+    function copyToClipboard(text, elementId) {
+      navigator.clipboard.writeText(text).then(() => {
+        const el = document.getElementById(elementId);
+        if (el) {
+          const original = el.innerText;
+          el.innerText = '✓ Copié !';
+          setTimeout(() => { el.innerText = original; }, 2500);
+        }
+      });
+    }
+
+    // --- SYNCHRONISATION DIRECTE AVEC CRUISE POCKET ---
+    function transferToCruisePocket(licenseKey) {
+      const list = getStoredLicenses();
+      const item = list.find(l => l.key.toUpperCase() === licenseKey.toUpperCase());
+      if (!item) {
+        alert("Licence introuvable.");
+        return;
+      }
+
+      let baseUrl = 'https://bkhmondocteur.github.io/CruisePocket/';
+      try {
+        if (window.location.protocol !== 'file:' && window.location.pathname.includes('CruisePocket')) {
+          baseUrl = window.location.origin + window.location.pathname.replace(/\/keygen\.html.*$/i, '') + '/';
+        }
+      } catch {}
+
+      const target = new URL(baseUrl);
+      target.searchParams.set('license', item.key);
+      target.searchParams.set('role', item.role);
+      target.searchParams.set('name', item.holderName);
+      target.searchParams.set('detail1', item.detail1 || '');
+      target.searchParams.set('detail2', item.detail2 || '');
+      target.searchParams.set('location', item.location || '');
+
+      window.open(target.toString(), '_blank');
+    }
+
+    function transferResultToCruisePocket() {
+      const key = document.getElementById('result-key').innerText.trim();
+      if (!key) return;
+      transferToCruisePocket(key);
+    }
+
+    // --- GESTION DU REGISTRE ET DES RÉVOCATIONS ---
+
+    function setFilter(filter) {
+      currentFilter = filter;
+      const filters = ['all', 'active', 'revoked', 'medecin', 'societe'];
+      filters.forEach(f => {
+        const btn = document.getElementById(`btn-filter-${f}`);
+        if (!btn) return;
+        if (f === filter) {
+          btn.className = "px-3 py-1.5 rounded-lg bg-cyan-600 text-white cursor-pointer transition-all";
+        } else {
+          btn.className = "px-3 py-1.5 rounded-lg text-slate-400 hover:text-white cursor-pointer transition-all";
+        }
+      });
+      renderLicensesTable();
+    }
+
+    function toggleRevokeLicense(key) {
+      const list = getStoredLicenses();
+      const target = list.find(l => l.key.toUpperCase() === key.toUpperCase());
+      if (!target) return;
+
+      if (target.status === 'active') {
+        const confirmRevoke = confirm(`⚠️ Êtes-vous sûr de vouloir RÉVOQUER cette licence ?\n\nTitulaire: ${target.holderName}\nClé: ${target.key}\n\nL'accès à CruisePocket sera immédiatement bloqué pour ce compte.`);
+        if (!confirmRevoke) return;
+
+        target.status = 'revoked';
+        target.revokedAt = new Date().toISOString();
+        alert(`🔴 Licence ${target.key} révoquée avec succès.`);
+      } else {
+        const confirmRestore = confirm(`Voulez-vous rétablir et réactiver la licence de ${target.holderName} ?`);
+        if (!confirmRestore) return;
+
+        target.status = 'active';
+        target.revokedAt = undefined;
+        alert(`🟢 Licence ${target.key} réactivée avec succès.`);
+      }
+
+      saveStoredLicenses(list);
+      renderLicensesTable();
+    }
+
+    function deleteLicenseEntry(key) {
+      if (!confirm(`Supprimer définitivement la clé ${key} du registre ?`)) return;
+      let list = getStoredLicenses();
+      list = list.filter(l => l.key.toUpperCase() !== key.toUpperCase());
+      saveStoredLicenses(list);
+      renderLicensesTable();
+    }
+
+    function promptManualRevoke() {
+      const key = prompt("Entrez la clé de licence complète à révoquer (ex: CP-MED-... ou CP-SOC-...) :");
+      if (!key) return;
+      const trimmed = key.trim().toUpperCase();
+
+      let list = getStoredLicenses();
+      let found = list.find(l => l.key.toUpperCase() === trimmed);
+
+      if (found) {
+        toggleRevokeLicense(found.key);
+      } else {
+        const confirmCreate = confirm(`La clé ${trimmed} n'est pas encore enregistrée dans la liste.\nVoulez-vous l'ajouter immédiatement à la liste noire des clés RÉVOQUÉES ?`);
+        if (confirmCreate) {
+          const role = trimmed.startsWith('CP-MED-') ? 'medecin' : 'societe';
+          list.unshift({
+            key: trimmed,
+            role,
+            holderName: 'Licence Clé Manuelle',
+            detail1: 'Révocation Forcée',
+            detail2: '',
+            location: 'N/A',
+            createdAt: new Date().toISOString(),
+            status: 'revoked',
+            revokedAt: new Date().toISOString()
+          });
+          saveStoredLicenses(list);
+          renderLicensesTable();
+          alert(`🔴 Clé ${trimmed} inscrite en liste noire et révoquée.`);
+        }
+      }
+    }
+
+    function exportLicensesJson() {
+      const list = getStoredLicenses();
+      const blob = new Blob([JSON.stringify(list, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cruisepocket-licences-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importLicensesJson(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (Array.isArray(parsed)) {
+            saveStoredLicenses(parsed);
+            renderLicensesTable();
+            alert(`✓ ${parsed.length} licences importées avec succès !`);
+          } else {
+            alert("Format JSON invalide (doit être un tableau de licences).");
+          }
+        } catch (err) {
+          alert("Erreur lors de la lecture du fichier JSON: " + err.message);
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    function renderLicensesTable() {
+      const allList = getStoredLicenses();
+      const searchQuery = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
+
+      // Mettre à jour les statistiques
+      const countActive = allList.filter(l => l.status === 'active').length;
+      const countRevoked = allList.filter(l => l.status === 'revoked').length;
+      const countMed = allList.filter(l => l.role === 'medecin').length;
+      const countSoc = allList.filter(l => l.role === 'societe').length;
+
+      document.getElementById('stat-total').innerText = allList.length;
+      document.getElementById('stat-active').innerText = countActive;
+      document.getElementById('stat-revoked').innerText = countRevoked;
+      document.getElementById('stat-medecins').innerText = countMed;
+      document.getElementById('stat-societes').innerText = countSoc;
+
+      document.getElementById('count-all').innerText = allList.length;
+      document.getElementById('count-active').innerText = countActive;
+      document.getElementById('count-revoked').innerText = countRevoked;
+      document.getElementById('count-medecin').innerText = countMed;
+      document.getElementById('count-societe').innerText = countSoc;
+
+      // Filtrer
+      let filtered = allList.filter(item => {
+        // Filtre onglet
+        if (currentFilter === 'active' && item.status !== 'active') return false;
+        if (currentFilter === 'revoked' && item.status !== 'revoked') return false;
+        if (currentFilter === 'medecin' && item.role !== 'medecin') return false;
+        if (currentFilter === 'societe' && item.role !== 'societe') return false;
+
+        // Filtre recherche
+        if (searchQuery) {
+          const combined = `${item.key} ${item.holderName} ${item.detail1 || ''} ${item.location || ''}`.toLowerCase();
+          return combined.includes(searchQuery);
+        }
+        return true;
+      });
+
+      const tbody = document.getElementById('licenses-tbody');
+      const emptyState = document.getElementById('empty-state');
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+
+      tbody.innerHTML = filtered.map(item => {
+        const isActive = item.status === 'active';
+        const isMed = item.role === 'medecin';
+        const formattedDate = new Date(item.createdAt).toLocaleDateString('fr-FR', {
+          day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+
+        return `
+          <tr class="hover:bg-slate-900/50 transition-colors ${!isActive ? 'bg-rose-950/20' : ''}">
+            
+            <!-- Statut Badge -->
+            <td class="p-3.5 whitespace-nowrap">
+              ${isActive ? `
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  Active
+                </span>
+              ` : `
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-950 text-rose-400 border border-rose-800">
+                  <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                  Révoquée
+                </span>
+              `}
+            </td>
+
+            <!-- Profil Rôle -->
+            <td class="p-3.5 whitespace-nowrap">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isMed ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-800' : 'bg-cyan-950/80 text-cyan-300 border border-cyan-800'}">
+                ${isMed ? '🩺 Médecin' : '🏢 Société'}
+              </span>
+            </td>
+
+            <!-- Clé de Licence -->
+            <td class="p-3.5 whitespace-nowrap font-mono">
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-xs ${isActive ? 'text-cyan-300' : 'text-slate-500 line-through'}">
+                  ${item.key}
+                </span>
+                <button
+                  onclick="copyToClipboard('${item.key}', 'btn-cp-${item.key}')"
+                  id="btn-cp-${item.key}"
+                  class="text-[10px] py-0.5 px-1.5 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  title="Copier la clé"
+                >
+                  Copier
+                </button>
+              </div>
+            </td>
+
+            <!-- Titulaire & Métadonnées -->
+            <td class="p-3.5">
+              <div class="font-bold text-white text-xs">${item.holderName}</div>
+              <div class="text-[10px] text-slate-400 flex items-center gap-2 flex-wrap mt-0.5">
+                <span>${item.detail1 || ''}</span>
+                ${item.detail2 ? `<span>• ${item.detail2}</span>` : ''}
+                ${item.location ? `<span>• 📍 ${item.location}</span>` : ''}
+              </div>
+            </td>
+
+            <!-- Date d'Émission -->
+            <td class="p-3.5 whitespace-nowrap text-[11px] text-slate-400">
+              ${formattedDate}
+              ${item.revokedAt ? `
+                <div class="text-[9px] text-rose-400 font-semibold mt-0.5">
+                  Révoquée le ${new Date(item.revokedAt).toLocaleDateString('fr-FR')}
+                </div>
+              ` : ''}
+            </td>
+
+            <!-- Actions : Révoquer / Rétablir / Supprimer -->
+            <td class="p-3.5 text-right whitespace-nowrap">
+              <div class="flex items-center justify-end gap-1.5">
+                ${isActive ? `
+                  <button
+                    onclick="transferToCruisePocket('${item.key}')"
+                    class="px-2.5 py-1 rounded-lg bg-cyan-950 hover:bg-cyan-900 text-cyan-300 border border-cyan-800 text-[10px] font-bold transition-all hover:scale-105 cursor-pointer shadow-sm flex items-center gap-1"
+                    title="Ouvrir CruisePocket et synchroniser ce compte immédiatement"
+                  >
+                    <span>🚢 Ouvrir PWA</span>
+                  </button>
+
+                  <button
+                    onclick="toggleRevokeLicense('${item.key}')"
+                    class="px-2.5 py-1 rounded-lg bg-rose-950 hover:bg-rose-900 text-rose-300 border border-rose-800 text-[10px] font-bold transition-all hover:scale-105 cursor-pointer shadow-sm"
+                    title="Révoquer cette licence et bloquer son accès"
+                  >
+                    Révoquer
+                  </button>
+                ` : `
+                  <button
+                    onclick="toggleRevokeLicense('${item.key}')"
+                    class="px-2.5 py-1 rounded-lg bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-800 text-[10px] font-bold transition-all hover:scale-105 cursor-pointer shadow-sm"
+                    title="Rétablir cette licence"
+                  >
+                    Rétablir
+                  </button>
+                `}
+
+                <button
+                  onclick="deleteLicenseEntry('${item.key}')"
+                  class="p-1 rounded-lg text-slate-600 hover:text-rose-400 transition-colors cursor-pointer"
+                  title="Supprimer du registre"
+                >
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+            </td>
+
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Vérificateur de clé
+    function verifyKey() {
+      const input = document.getElementById('test-key-input').value.trim().toUpperCase();
+      const resDiv = document.getElementById('verify-result');
+      resDiv.classList.remove('hidden');
+
+      if (!input) {
+        resDiv.className = 'text-xs p-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-400';
+        resDiv.innerText = 'Veuillez saisir une clé à vérifier.';
+        return;
+      }
+
+      const revokedList = getRevokedKeysList();
+      const isRevoked = revokedList.includes(input);
+
+      if (isRevoked) {
+        resDiv.className = 'text-xs p-3 rounded-xl bg-rose-950/80 border border-rose-500/80 text-rose-300 font-semibold';
+        resDiv.innerHTML = `🚫 <strong>Licence RÉVOQUÉE :</strong> La clé ${input} est révoquée. L'accès à CruisePocket est désactivé.`;
+        return;
+      }
+
+      if (input.startsWith('CP-MED-')) {
+        const parts = input.split('-');
+        if (parts.length >= 4) {
+          resDiv.className = 'text-xs p-3 rounded-xl bg-emerald-950/80 border border-emerald-500/60 text-emerald-300';
+          resDiv.innerHTML = `✅ <strong>Clé Médecin Conforme & Active :</strong> Format valide, non révoquée (Ordre: ${parts[2] || 'OK'}).`;
+          return;
+        }
+      } else if (input.startsWith('CP-SOC-')) {
+        const parts = input.split('-');
+        if (parts.length >= 4) {
+          resDiv.className = 'text-xs p-3 rounded-xl bg-cyan-950/80 border border-cyan-500/60 text-cyan-300';
+          resDiv.innerHTML = `✅ <strong>Clé Société Conforme & Active :</strong> Format valide, non révoquée (Zone: ${parts[2] || 'OK'}).`;
+          return;
+        }
+      }
+
+      resDiv.className = 'text-xs p-3 rounded-xl bg-rose-950/80 border border-rose-500/60 text-rose-300';
+      resDiv.innerHTML = '❌ <strong>Format Invalide :</strong> La clé doit débuter par CP-MED- ou CP-SOC- et comporter ses 4 segments de sécurité.';
+    }
+
+    // Initialisation au chargement de la page
+    window.addEventListener('DOMContentLoaded', () => {
+      renderLicensesTable();
+    });
+  </script>
+
+</body>
+</html>
