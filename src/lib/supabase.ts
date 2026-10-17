@@ -60,6 +60,29 @@ export const dataService = {
       }
     }
 
+    // Assainissement préventif du quota localStorage :
+    // Si d'anciens dossiers contiennent encore du base64 volumineux, on migre vers IndexedDB et on allège localStorage
+    let hadHeavyDocs = false;
+    rawList = rawList.map((c) => {
+      if (c.passport_file_url && (c.passport_file_url.startsWith('data:') || c.passport_file_url.length > 500)) {
+        hadHeavyDocs = true;
+        const docId = c.passport_file_id || ('doc-' + Math.random().toString(36).substring(2, 9));
+        documentStorage.saveDocument(docId, c.passport_file_name || 'copie-passeport.pdf', c.passport_file_url).catch(() => {});
+        const copy = { ...c, passport_file_id: docId };
+        delete copy.passport_file_url;
+        return copy;
+      }
+      return c;
+    });
+
+    if (hadHeavyDocs) {
+      try {
+        localStorage.setItem(STORAGE_CANDIDATES_KEY, JSON.stringify(rawList));
+      } catch (e) {
+        console.warn('Erreur réécriture allégée localStorage:', e);
+      }
+    }
+
     // Purge formelle de tous les anciens candidats fictifs de démonstration
     const hadFictive = rawList.some(c => 
       FICTIVE_CANDIDATE_IDS.includes(c.id) || 
@@ -161,27 +184,32 @@ export const dataService = {
     // Sauvegarde locale optimisée et protégée contre le dépassement de quota
     const existing = await this.getCandidates();
     
-    // Pour le stockage local pérenne, on ne stocke pas les multi-mégaoctets de base64 dans localStorage
     // Le document lourd est déjà sécurisé dans le coffre local IndexedDB via documentStorage.
+    // Pour localStorage, AUCUN base64 ne doit résider : garantie absolue de légèreté (< 1 Ko par dossier).
     const storageRecord = { ...newRecord };
-    if (storageRecord.passport_file_url && storageRecord.passport_file_url.startsWith('data:')) {
-      delete storageRecord.passport_file_url;
-    }
+    delete storageRecord.passport_file_url;
 
-    const updated = [storageRecord, ...existing];
+    const cleanExisting = existing.map(c => {
+      const cpy = { ...c };
+      delete cpy.passport_file_url;
+      return cpy;
+    });
+
+    const updated = [storageRecord, ...cleanExisting];
     try {
       localStorage.setItem(STORAGE_CANDIDATES_KEY, JSON.stringify(updated));
     } catch (e) {
-      console.warn('Quota localStorage atteint, purge des pièces lourdes en cours...', e);
-      const cleanList = updated.map(c => {
-        const cpy = { ...c };
-        delete cpy.passport_file_url;
-        return cpy;
-      });
+      console.warn('Quota localStorage : purge d\'urgence des résidus...', e);
       try {
-        localStorage.setItem(STORAGE_CANDIDATES_KEY, JSON.stringify(cleanList));
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const key = localStorage.key(i);
+          if (key && (key.startsWith('cruisepocket_doc_') || key.startsWith('cruisepocket_tmp') || key.startsWith('backup_temp_'))) {
+            localStorage.removeItem(key);
+          }
+        }
+        localStorage.setItem(STORAGE_CANDIDATES_KEY, JSON.stringify(updated));
       } catch (err2) {
-        console.error('Erreur critique persistance localStorage:', err2);
+        console.warn('Persistance localStorage non bloquante:', err2);
       }
     }
 
@@ -239,23 +267,19 @@ export const dataService = {
       updated_at: new Date().toISOString()
     };
 
-    if (updatedRecord.passport_file_url && updatedRecord.passport_file_url.startsWith('data:')) {
-      delete updatedRecord.passport_file_url;
-    }
-
+    delete updatedRecord.passport_file_url;
     existing[index] = updatedRecord;
 
+    const cleanExisting = existing.map(c => {
+      const cpy = { ...c };
+      delete cpy.passport_file_url;
+      return cpy;
+    });
+
     try {
-      localStorage.setItem(STORAGE_CANDIDATES_KEY, JSON.stringify(existing));
+      localStorage.setItem(STORAGE_CANDIDATES_KEY, JSON.stringify(cleanExisting));
     } catch {
-      const cleanList = existing.map(c => {
-        const cpy = { ...c };
-        delete cpy.passport_file_url;
-        return cpy;
-      });
-      try {
-        localStorage.setItem(STORAGE_CANDIDATES_KEY, JSON.stringify(cleanList));
-      } catch {}
+      // Non bloquant
     }
 
     localBroadcast?.postMessage({ type: 'CANDIDATE_UPDATED', candidate: existing[index] });

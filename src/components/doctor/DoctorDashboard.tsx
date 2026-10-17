@@ -583,6 +583,7 @@ export const DoctorDashboard: React.FC = () => {
         onClose={() => setSelectedPassportCandidate(null)}
         fileName={selectedPassportCandidate?.passport_file_name}
         fileUrl={selectedPassportCandidate?.passport_file_url}
+        fileId={selectedPassportCandidate?.passport_file_id}
         candidateName={selectedPassportCandidate ? `${selectedPassportCandidate.civility} ${selectedPassportCandidate.last_name} ${selectedPassportCandidate.first_name}` : undefined}
         passportNumber={selectedPassportCandidate?.passport_number}
       />

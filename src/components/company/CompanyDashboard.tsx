@@ -70,10 +70,55 @@ export const CompanyDashboard: React.FC = () => {
   const [selectedPassportCandidate, setSelectedPassportCandidate] = useState<Candidate | null>(null);
 
   const fileToDataUrl = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
+    // Si c'est un PDF, lecture brute sans altération
+    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Si c'est une image (JPG, PNG, WEBP), optimisation via Canvas pour réduire les photos de smartphones (souvent > 5 Mo)
+    // tout en conservant une netteté parfaite des mentions du passeport
+    return new Promise((resolve) => {
       const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const MAX_WIDTH = 1280;
+          const MAX_HEIGHT = 1280;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height = Math.round((height * MAX_WIDTH) / width);
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width = Math.round((width * MAX_HEIGHT) / height);
+              height = MAX_HEIGHT;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', 0.8));
+          } else {
+            resolve(e.target?.result as string);
+          }
+        };
+        img.onerror = () => resolve(e.target?.result as string);
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => resolve('');
       reader.readAsDataURL(file);
     });
   };
@@ -833,6 +878,7 @@ export const CompanyDashboard: React.FC = () => {
         onClose={() => setSelectedPassportCandidate(null)}
         fileName={selectedPassportCandidate?.passport_file_name}
         fileUrl={selectedPassportCandidate?.passport_file_url}
+        fileId={selectedPassportCandidate?.passport_file_id}
         candidateName={selectedPassportCandidate ? `${selectedPassportCandidate.civility} ${selectedPassportCandidate.last_name} ${selectedPassportCandidate.first_name}` : undefined}
         passportNumber={selectedPassportCandidate?.passport_number}
       />

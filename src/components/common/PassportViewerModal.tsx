@@ -1,11 +1,13 @@
-import React from 'react';
-import { X, FileText, Download, ExternalLink, ShieldCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, FileText, Download, ExternalLink, ShieldCheck, Loader2 } from 'lucide-react';
+import { documentStorage } from '../../lib/documentStorage';
 
 interface PassportViewerModalProps {
   isOpen: boolean;
   onClose: () => void;
   fileName?: string;
   fileUrl?: string;
+  fileId?: string;
   candidateName?: string;
   passportNumber?: string;
 }
@@ -15,12 +17,36 @@ export const PassportViewerModal: React.FC<PassportViewerModalProps> = ({
   onClose,
   fileName,
   fileUrl,
+  fileId,
   candidateName,
   passportNumber
 }) => {
+  const [resolvedUrl, setResolvedUrl] = useState<string | undefined>(fileUrl);
+  const [loadingDoc, setLoadingDoc] = useState(false);
+
+  useEffect(() => {
+    if (fileUrl) {
+      setResolvedUrl(fileUrl);
+      return;
+    }
+    if (fileId && isOpen) {
+      setLoadingDoc(true);
+      documentStorage.getDocument(fileId).then((doc) => {
+        setResolvedUrl(doc?.dataUrl);
+      }).catch(() => {
+        setResolvedUrl(undefined);
+      }).finally(() => {
+        setLoadingDoc(false);
+      });
+    } else if (!fileUrl) {
+      setResolvedUrl(undefined);
+    }
+  }, [fileUrl, fileId, isOpen]);
+
   if (!isOpen) return null;
 
-  const isPdf = fileName?.toLowerCase().endsWith('.pdf') || fileUrl?.startsWith('data:application/pdf');
+  const activeUrl = resolvedUrl || fileUrl;
+  const isPdf = fileName?.toLowerCase().endsWith('.pdf') || activeUrl?.startsWith('data:application/pdf');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
@@ -48,9 +74,9 @@ export const PassportViewerModal: React.FC<PassportViewerModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            {fileUrl && (
+            {activeUrl && (
               <a
-                href={fileUrl}
+                href={activeUrl}
                 download={fileName || 'passeport.pdf'}
                 className="p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
                 title="Télécharger la pièce jointe"
@@ -69,7 +95,12 @@ export const PassportViewerModal: React.FC<PassportViewerModalProps> = ({
 
         {/* Corps Visualiseur */}
         <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center bg-slate-950/50 min-h-[340px]">
-          {fileUrl ? (
+          {loadingDoc ? (
+            <div className="flex flex-col items-center gap-3 text-slate-400">
+              <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
+              <span className="text-xs">Chargement sécurisé depuis le coffre local...</span>
+            </div>
+          ) : activeUrl ? (
             isPdf ? (
               <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-center py-8">
                 <div className="w-16 h-16 rounded-2xl bg-maritime-950 text-cyan-400 border border-maritime-800 flex items-center justify-center shadow-lg">
@@ -81,7 +112,7 @@ export const PassportViewerModal: React.FC<PassportViewerModalProps> = ({
                 </div>
                 <div className="flex items-center gap-3 mt-2">
                   <a
-                    href={fileUrl}
+                    href={activeUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="px-4 py-2 rounded-xl bg-maritime-600 hover:bg-maritime-500 text-white text-xs font-bold flex items-center gap-2 shadow-md transition-all"
@@ -90,7 +121,7 @@ export const PassportViewerModal: React.FC<PassportViewerModalProps> = ({
                     <span>Ouvrir dans un nouvel onglet</span>
                   </a>
                   <a
-                    href={fileUrl}
+                    href={activeUrl}
                     download={fileName || 'passeport.pdf'}
                     className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-2 transition-all"
                   >
@@ -102,7 +133,7 @@ export const PassportViewerModal: React.FC<PassportViewerModalProps> = ({
             ) : (
               <div className="relative max-h-[500px] max-w-full rounded-xl overflow-hidden border border-slate-800 shadow-xl bg-slate-900">
                 <img
-                  src={fileUrl}
+                  src={activeUrl}
                   alt="Passeport"
                   className="max-h-[500px] w-auto object-contain"
                 />
