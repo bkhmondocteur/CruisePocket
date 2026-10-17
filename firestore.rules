@@ -1,0 +1,20 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Acheminement des dossiers marins (Société <-> Médecin)
+    match /candidates/{candidateId} {
+      allow read, write: if true;
+    }
+
+    // Fragments de transit pour documents lourds (Passeports découpés)
+    match /document_chunks/{chunkId} {
+      allow read, write: if true;
+    }
+
+    // Registre des licences officielles (Médecins et Sociétés)
+    match /licenses/{licenseId} {
+      allow read, write: if true;
+    }
+  }
+}
