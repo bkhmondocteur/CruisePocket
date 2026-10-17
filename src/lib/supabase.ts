@@ -1,7 +1,32 @@
 import { createClient } from '@supabase/supabase-js';
-import { Candidate, CandidateEvent, DeletionInfo, Role } from '../types';
+import { Candidate, CandidateEvent, DeletionInfo, Role, Doctor } from '../types';
 import { backupService } from './backupService';
 import { documentStorage } from './documentStorage';
+import { isLicenseRevoked } from '../utils/license';
+
+export const INITIAL_APPROVED_DOCTORS: Doctor[] = [
+  {
+    id: 'med-ferrari',
+    full_name: 'Dr. Jean-Marc FERRARI',
+    order_number: '13/98745',
+    practice_location: 'Centre Médical Maritime - Marseille Port',
+    license_key: 'CP-MED-13987-A1B2C3-4E8F'
+  },
+  {
+    id: 'med-bensalah',
+    full_name: 'Dr. Leila BEN SALAH',
+    order_number: '24/55210',
+    practice_location: 'Centre de Santé Portuaire - Tunis La Goulette',
+    license_key: 'CP-MED-24552-D8E9F1-3A4B'
+  },
+  {
+    id: 'med-tardieu',
+    full_name: 'Dr. Philippe TARDIEU',
+    order_number: '75/10492',
+    practice_location: 'Pôle Médical Gens de Mer - Le Havre Port',
+    license_key: 'CP-MED-75104-C4B2A1-9F8E'
+  }
+];
 
 // Variables d'environnement Supabase (optionnelles en local, obligatoires en production)
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
@@ -54,6 +79,8 @@ const INITIAL_MOCK_CANDIDATES: Candidate[] = [
     financial_status: 'Non payé',
     payer_name: 'La société',
     service_company_name: 'TransMed Crewing Services',
+    doctor_id: 'med-ferrari',
+    doctor_name: 'Dr. Jean-Marc FERRARI',
     currency: 'DT',
     is_archived: false,
     created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
@@ -76,6 +103,8 @@ const INITIAL_MOCK_CANDIDATES: Candidate[] = [
     financial_status: 'Payé',
     payer_name: 'Le candidat lui-même',
     service_company_name: 'Azur Crewing Agency',
+    doctor_id: 'med-bensalah',
+    doctor_name: 'Dr. Leila BEN SALAH',
     currency: 'DT',
     is_archived: false,
     created_at: new Date(Date.now() - 3600000 * 4).toISOString(),
@@ -98,6 +127,8 @@ const INITIAL_MOCK_CANDIDATES: Candidate[] = [
     financial_status: 'Payé',
     payer_name: 'La société',
     service_company_name: 'TransMed Crewing Services',
+    doctor_id: 'med-ferrari',
+    doctor_name: 'Dr. Jean-Marc FERRARI',
     currency: 'DT',
     is_archived: false,
     created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
@@ -120,10 +151,12 @@ const INITIAL_MOCK_CANDIDATES: Candidate[] = [
     financial_status: 'Payé',
     payer_name: 'La société',
     service_company_name: 'TransMed Crewing Services',
+    doctor_id: 'med-bensalah',
+    doctor_name: 'Dr. Leila BEN SALAH',
     currency: 'DT',
     is_archived: true,
     archived_at: new Date(Date.now() - 86400000 * 15).toISOString(),
-    created_at: new Date(Date.now() - 86400000 * 45).toISOString(), // Créé il y a 45 jours (> 1 mois)
+    created_at: new Date(Date.now() - 86400000 * 45).toISOString(),
     updated_at: new Date(Date.now() - 86400000 * 45).toISOString()
   }
 ];
@@ -395,6 +428,44 @@ export const dataService = {
 
     const doc = await documentStorage.getDocument(candidate.passport_file_id);
     return doc?.dataUrl;
+  },
+
+  /**
+   * Récupérer la liste des médecins agréés actifs (non révoqués)
+   * Combine les médecins par défaut et ceux enregistrés via le Keygen
+   */
+  async getAvailableDoctors(): Promise<Doctor[]> {
+    const doctorsMap = new Map<string, Doctor>();
+
+    // 1. Médecins agréés officiels par défaut
+    INITIAL_APPROVED_DOCTORS.forEach(doc => {
+      doctorsMap.set(doc.license_key.toUpperCase(), doc);
+    });
+
+    // 2. Médecins enregistrés via le Keygen ou le registre local
+    try {
+      const rawRegistered = localStorage.getItem('cruisepocket_registered_licenses');
+      if (rawRegistered) {
+        const list = JSON.parse(rawRegistered);
+        if (Array.isArray(list)) {
+          list.filter((item: any) => item.role === 'medecin').forEach((item: any) => {
+            const keyUpper = item.key.toUpperCase();
+            doctorsMap.set(keyUpper, {
+              id: `med-${item.key.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
+              full_name: item.holderName,
+              order_number: item.detail1?.replace(/[^0-9/]/g, '') || 'Certifié',
+              practice_location: item.location || 'Cabinet Médical Agréé',
+              license_key: item.key
+            });
+          });
+        }
+      }
+    } catch (e) {
+      console.warn("Erreur lecture médecins enregistrés:", e);
+    }
+
+    // 3. Filtrer formellement les médecins révoqués
+    return Array.from(doctorsMap.values()).filter(doc => !isLicenseRevoked(doc.license_key));
   },
 
   // --- Compagnies de Croisière (Auto-alimentation) ---

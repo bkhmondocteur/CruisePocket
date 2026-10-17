@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { dataService } from '../../lib/supabase';
 import { calculateAge, validateMaritimeAge } from '../../utils/age';
-import { Civility, ContractType, Candidate } from '../../types';
+import { Civility, ContractType, Candidate, Doctor } from '../../types';
 import { PassportViewerModal } from '../common/PassportViewerModal';
 import { 
   Building2, 
@@ -21,7 +21,8 @@ import {
   Bell,
   Archive,
   ArchiveRestore,
-  X
+  X,
+  Stethoscope
 } from 'lucide-react';
 import { CandidateFicheModal } from '../common/CandidateFicheModal';
 
@@ -38,6 +39,8 @@ export const CompanyDashboard: React.FC = () => {
   const [position, setPosition] = useState('');
   const [contractType, setContractType] = useState<ContractType>('Nouveau contrat');
   const [embarkationDate, setEmbarkationDate] = useState('');
+  const [availableDoctors, setAvailableDoctors] = useState<Doctor[]>([]);
+  const [selectedDoctorId, setSelectedDoctorId] = useState<string>('');
   const [passportFile, setPassportFile] = useState<File | null>(null);
 
   // Auto-completion list
@@ -79,10 +82,16 @@ export const CompanyDashboard: React.FC = () => {
   const calculatedAge = calculateAge(birthDate);
   const ageValidation = validateMaritimeAge(calculatedAge);
 
-  // Charger les compagnies pour l'autocomplétion & l'historique
+  // Charger les compagnies, médecins agréés & historique
   useEffect(() => {
     loadCruiseCompanies();
     loadTransfers();
+    dataService.getAvailableDoctors().then((docs) => {
+      setAvailableDoctors(docs);
+      if (docs.length > 0) {
+        setSelectedDoctorId(docs[0].id);
+      }
+    });
 
     // Écouter les mises à jour réactives (y compris suppressions mutuelles)
     const unsubscribe = dataService.subscribeToCandidates((event) => {
@@ -178,6 +187,13 @@ export const CompanyDashboard: React.FC = () => {
       return;
     }
 
+    if (!selectedDoctorId) {
+      setErrorMessage("Veuillez sélectionner le médecin agréé destinataire.");
+      return;
+    }
+
+    const recipientDoctor = availableDoctors.find(d => d.id === selectedDoctorId);
+
     setLoading(true);
 
     try {
@@ -203,6 +219,8 @@ export const CompanyDashboard: React.FC = () => {
         position: position.trim(),
         contract_type: contractType,
         embarkation_date: embarkationDate,
+        doctor_id: recipientDoctor?.id,
+        doctor_name: recipientDoctor?.full_name,
         medical_status: 'En instance' as const,
         financial_amount: 180.00,
         financial_status: 'Non payé' as const,
@@ -215,7 +233,7 @@ export const CompanyDashboard: React.FC = () => {
 
       // Notification de succès
       setSuccessMessage(
-        `Le dossier de ${civility} ${lastName.toUpperCase()} ${firstName} a été transmis en temps réel au Médecin avec succès !`
+        `Le dossier de ${civility} ${lastName.toUpperCase()} ${firstName} a été transmis en temps réel au ${recipientDoctor?.full_name || 'Médecin'} avec succès !`
       );
 
       // Vider le formulaire comme demandé dans les specs
@@ -569,19 +587,57 @@ export const CompanyDashboard: React.FC = () => {
               />
             </div>
 
+            {/* LIGNE 7 : CHOIX DU MÉDECIN DESTINATAIRE */}
+            <div className="bg-slate-950/80 p-4 rounded-xl border border-emerald-500/30 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                  <Stethoscope className="w-4 h-4 text-emerald-400" />
+                  <span>Médecin Agréé Destinataire (Transmission en direct) *</span>
+                </label>
+                <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-950 px-2 py-0.5 rounded border border-emerald-800">
+                  Réception immédiate
+                </span>
+              </div>
+
+              <select
+                value={selectedDoctorId}
+                onChange={(e) => setSelectedDoctorId(e.target.value)}
+                required
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+              >
+                {availableDoctors.map((doc) => (
+                  <option key={doc.id} value={doc.id}>
+                    {doc.full_name} — {doc.practice_location} (Ordre: {doc.order_number})
+                  </option>
+                ))}
+              </select>
+
+              {availableDoctors.find(d => d.id === selectedDoctorId) && (
+                <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1">
+                  <span className="flex items-center gap-1 text-emerald-300">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    Cabinet : <strong>{availableDoctors.find(d => d.id === selectedDoctorId)?.practice_location}</strong>
+                  </span>
+                  <span className="font-mono text-[10px] text-slate-500">
+                    N° Ordre : {availableDoctors.find(d => d.id === selectedDoctorId)?.order_number}
+                  </span>
+                </div>
+              )}
+            </div>
+
             {/* ACTION FINALE : ENVOYER POUR LE MÉDECIN */}
             <div className="pt-4 border-t border-slate-800">
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3.5 px-4 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-maritime-600 via-cyan-600 to-emerald-600 hover:from-maritime-500 hover:to-emerald-500 shadow-lg shadow-cyan-600/20 flex items-center justify-center gap-2.5 transition-all transform active:scale-[0.99] disabled:opacity-50"
+                className="w-full py-3.5 px-4 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-maritime-600 via-cyan-600 to-emerald-600 hover:from-maritime-500 hover:to-emerald-500 shadow-lg shadow-cyan-600/20 flex items-center justify-center gap-2.5 transition-all transform active:scale-[0.99] disabled:opacity-50 cursor-pointer"
               >
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 ) : (
                   <>
                     <Send className="w-4 h-4" />
-                    <span>Envoyer pour le Médecin</span>
+                    <span>Envoyer pour {availableDoctors.find(d => d.id === selectedDoctorId)?.full_name || 'le Médecin'}</span>
                   </>
                 )}
               </button>
@@ -704,6 +760,12 @@ export const CompanyDashboard: React.FC = () => {
                           {cand.financial_status} ({cand.financial_amount} DT)
                         </span>
                       </div>
+                    </div>
+
+                    {/* Médecin Destinataire */}
+                    <div className="pt-1.5 border-t border-slate-900/80 flex items-center gap-1.5 text-[11px] text-slate-400">
+                      <Stethoscope className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span>Destinataire : <strong className="text-emerald-300">{cand.doctor_name || 'Dr. Jean-Marc FERRARI'}</strong></span>
                     </div>
 
                     {/* Actions : Supprimer dossier + Fiche Candidat + Consulter passeport */}

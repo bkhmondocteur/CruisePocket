@@ -246,13 +246,18 @@ export const CandidateFicheModal: React.FC<CandidateFicheModalProps> = ({
 
           {/* SECTION 2 : AFFECTATION MARITIME & TYPE DE CONTRAT */}
           <div className="glass-panel rounded-2xl p-4 border border-slate-800 space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <h4 className="font-bold text-white text-xs uppercase tracking-wider text-slate-400">
                 Mission & Contrat d'Embarquement
               </h4>
-              <span className="text-slate-500 text-[11px]">
-                Société émettrice : <strong className="text-slate-300">{formData.service_company_name}</strong>
-              </span>
+              <div className="flex items-center gap-3 text-slate-500 text-[11px] flex-wrap">
+                <span>Société : <strong className="text-slate-300">{formData.service_company_name}</strong></span>
+                <span>•</span>
+                <span className="flex items-center gap-1 text-emerald-400">
+                  <Stethoscope className="w-3.5 h-3.5" />
+                  <span>Médecin destinataire : <strong className="text-white">{formData.doctor_name || 'Dr. Jean-Marc FERRARI'}</strong></span>
+                </span>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

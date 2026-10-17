@@ -53,6 +53,7 @@ export const DoctorDashboard: React.FC = () => {
 
   // Passport preview modal
   const [selectedPassportCandidate, setSelectedPassportCandidate] = useState<Candidate | null>(null);
+  const [filterMyDossiersOnly, setFilterMyDossiersOnly] = useState<boolean>(false);
 
   // Charger les dossiers & écouter en temps réel
   useEffect(() => {
@@ -168,13 +169,20 @@ export const DoctorDashboard: React.FC = () => {
   }
 
   const displayedList = currentTabList.filter((c) => {
+    // Filtre médecin destinataire
+    if (filterMyDossiersOnly && doctorProfile?.full_name) {
+      const isAssignedToMe = c.doctor_name === doctorProfile.full_name || c.doctor_id === doctorProfile.id;
+      if (!isAssignedToMe) return false;
+    }
+
     const q = searchTerm.toLowerCase();
     return (
       c.last_name.toLowerCase().includes(q) ||
       c.first_name.toLowerCase().includes(q) ||
       c.passport_number.toLowerCase().includes(q) ||
       c.cruise_company.toLowerCase().includes(q) ||
-      c.service_company_name.toLowerCase().includes(q)
+      c.service_company_name.toLowerCase().includes(q) ||
+      (c.doctor_name && c.doctor_name.toLowerCase().includes(q))
     );
   });
 
@@ -309,16 +317,34 @@ export const DoctorDashboard: React.FC = () => {
           </button>
         </div>
 
-        {/* Barre de Recherche Rapide */}
-        <div className="relative w-full sm:w-72">
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Rechercher marin, passeport, navire..."
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          />
-          <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5" />
+        {/* Barre de Recherche & Filtre Médecin */}
+        <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
+          {doctorProfile?.full_name && (
+            <button
+              type="button"
+              onClick={() => setFilterMyDossiersOnly(!filterMyDossiersOnly)}
+              className={`w-full sm:w-auto px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer border ${
+                filterMyDossiersOnly
+                  ? 'bg-emerald-950 text-emerald-300 border-emerald-500 shadow-sm'
+                  : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white'
+              }`}
+              title="Filtrer uniquement les dossiers affectés à votre cabinet"
+            >
+              <Stethoscope className="w-3.5 h-3.5 text-emerald-400" />
+              <span>{filterMyDossiersOnly ? 'Mes dossiers uniquement' : 'Tous les dossiers'}</span>
+            </button>
+          )}
+
+          <div className="relative w-full sm:w-64">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Rechercher marin, passeport, médecin..."
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+            <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5" />
+          </div>
         </div>
 
       </div>
@@ -426,6 +452,19 @@ export const DoctorDashboard: React.FC = () => {
                     <span className="text-slate-500 truncate max-w-[120px]" title={cand.service_company_name}>
                       Via: {cand.service_company_name}
                     </span>
+                  </div>
+
+                  {/* Médecin Destinataire */}
+                  <div className="text-[11px] pt-1.5 border-t border-slate-900/80 flex items-center justify-between">
+                    <span className="flex items-center gap-1 text-slate-300">
+                      <Stethoscope className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span>Destinataire : <strong className="text-emerald-300">{cand.doctor_name || 'Dr. Jean-Marc FERRARI'}</strong></span>
+                    </span>
+                    {doctorProfile?.full_name && (cand.doctor_name === doctorProfile.full_name || cand.doctor_id === doctorProfile.id) && (
+                      <span className="text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800 px-1.5 py-0.5 rounded">
+                        Affecté à vous
+                      </span>
+                    )}
                   </div>
                 </div>
 

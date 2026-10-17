@@ -67,29 +67,29 @@ export const Header: React.FC = () => {
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         
         {/* Logo & Titre */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           <img 
             src={`${import.meta.env.BASE_URL}logo.png`} 
             alt="CruisePocket Logo" 
-            className="w-[58px] h-[58px] object-contain drop-shadow-md"
+            className="w-11 h-11 object-contain shrink-0 drop-shadow-md"
           />
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
+              <h1 className="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-1.5 leading-tight">
                 Cruise<span className="text-transparent bg-clip-text bg-gradient-to-r from-maritime-400 to-cyan-300">Pocket</span>
               </h1>
-              <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-maritime-950 text-maritime-300 border border-maritime-800">
+              <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-maritime-950 text-maritime-300 border border-maritime-800 shrink-0">
                 PWA Maritime
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 hidden xs:block">
+            <p className="text-[11px] text-slate-400 hidden sm:block mt-0.5">
               Santé & Administration des Gens de Mer
             </p>
           </div>
         </div>
 
         {/* Espace Utilisateur & Actions */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0 flex-nowrap">
           
           {/* Statut Réseau */}
           <div 

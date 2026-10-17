@@ -71,16 +71,16 @@ export const HomePortal: React.FC = () => {
       <div className="flex-1 flex flex-col justify-center items-center px-4 py-8 sm:py-12 max-w-4xl mx-auto w-full animate-fadeIn">
         
         {/* Logo Officiel CruisePocket */}
-        <div className="flex flex-col items-center text-center max-w-2xl mx-auto mb-10 space-y-4">
-          <div className="relative group cursor-pointer">
+        <div className="flex flex-col items-center text-center max-w-2xl mx-auto mb-10">
+          <div className="relative group cursor-pointer mb-6">
             <img 
               src={`${import.meta.env.BASE_URL}logo.png`} 
               alt="CruisePocket Official Logo" 
-              className="w-[168px] h-[168px] sm:w-[188px] sm:h-[188px] object-contain drop-shadow-2xl transition-transform transform group-hover:scale-105 duration-300"
+              className="w-32 h-32 sm:w-40 sm:h-40 object-contain drop-shadow-2xl transition-transform transform group-hover:scale-105 duration-300 mx-auto"
             />
           </div>
           
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-3">
             Bienvenue sur <span className="text-transparent bg-clip-text bg-gradient-to-r from-maritime-400 via-cyan-300 to-emerald-400">CruisePocket</span>
           </h2>
           
@@ -194,11 +194,11 @@ export const HomePortal: React.FC = () => {
       <div className="w-full glass-panel rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-2xl relative space-y-6">
         
         {/* Logo & Titre */}
-        <div className="text-center space-y-3 pb-4 border-b border-slate-800">
+        <div className="text-center pb-4 border-b border-slate-800">
           <img 
             src={`${import.meta.env.BASE_URL}logo.png`} 
             alt="CruisePocket Logo" 
-            className="w-[104px] h-[104px] object-contain mx-auto drop-shadow-lg"
+            className="w-20 h-20 object-contain mx-auto drop-shadow-lg mb-3"
           />
           <div>
             <span className="text-[10px] font-bold tracking-wider uppercase text-slate-400">
