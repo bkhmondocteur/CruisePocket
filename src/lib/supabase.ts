@@ -213,11 +213,15 @@ export const dataService = {
       }
     }
 
-    // Auto-alimentation de la compagnie de croisière
-    await this.addCruiseCompany(candidate.cruise_company);
+    delete newRecord.passport_file_url;
 
     // Notification broadcast multi-onglets et événements locaux instantanés
-    localBroadcast?.postMessage({ type: 'CANDIDATE_ADDED', candidate: newRecord });
+    try {
+      localBroadcast?.postMessage({ type: 'CANDIDATE_ADDED', candidate: newRecord });
+    } catch (e) {
+      console.warn("Erreur postMessage broadcast:", e);
+    }
+
     window.dispatchEvent(new CustomEvent('cruisepocket_candidate_update', { 
       detail: { type: 'CANDIDATE_ADDED', candidate: newRecord } 
     }));
