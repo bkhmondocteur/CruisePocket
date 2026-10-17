@@ -46,6 +46,20 @@ export const CandidateFicheModal: React.FC<CandidateFicheModalProps> = ({
         setPassportDataUrl(docUrl || candidate.passport_file_url || null);
       });
     }
+
+    const handleDocReassembled = (e: Event) => {
+      const custom = e as CustomEvent<{ docId: string }>;
+      if (candidate && custom.detail?.docId === candidate.passport_file_id) {
+        dataService.loadCandidateDocument(candidate).then((docUrl) => {
+          if (docUrl) setPassportDataUrl(docUrl);
+        });
+      }
+    };
+
+    window.addEventListener('cruisepocket_doc_reassembled', handleDocReassembled);
+    return () => {
+      window.removeEventListener('cruisepocket_doc_reassembled', handleDocReassembled);
+    };
   }, [candidate, isOpen]);
 
   if (!isOpen || !formData) return null;

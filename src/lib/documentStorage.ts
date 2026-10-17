@@ -1,25 +1,48 @@
 /**
  * CruisePocket - Gestionnaire des Documents Lourds (Passeports, Bilans)
  * 
- * Règle d'architecture :
- * Les documents lourds (PDF, Scans, Images Haute Résolution) ne sont PAS stockés
- * sur Firestore pour éviter d'alourdir la base et exploser les quotas/coûts.
- * Firestore sert uniquement de PONT éphémère de transmission.
- * Le stockage persistant des documents s'effectue localement via IndexedDB
- * sur l'appareil du médecin et de la société.
+ * Architecture Métier :
+ * 1. Les documents lourds (PDF, Scans, Images) sont stockés de façon permanente et
+ *    sécurisée localement dans le coffre IndexedDB sur l'appareil du médecin et de la société.
+ * 2. Pour la transmission inter-profils (Société -> Médecin) via le pont (Firestore / Realtime) :
+ *    - Le fichier est découpé localement en fragments (Chunks de 64 Ko).
+ *    - Chaque fragment transite individuellement sans saturer les quotas de document (1 Mo Firestore / 256 Ko WS).
+ *    - À la réception côté Médecin, les fragments sont réassemblés en direct, sauvegardés
+ *      dans son IndexedDB local, et les résidus du pont sont immédiatement libérés.
  */
 
 const DB_NAME = 'cruisepocket_local_vault';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = 'heavy_documents';
+const CHUNKS_STORE_NAME = 'ephemeral_chunks';
 
-interface HeavyDocRecord {
+export const CHUNK_SIZE = 64 * 1024; // 64 Ko par fragment
+
+export interface HeavyDocRecord {
   id: string;
   fileName: string;
   dataUrl: string;
   sizeBytes: number;
   updatedAt: string;
 }
+
+export interface DocumentChunkMessage {
+  type: 'CHUNK_TRANSIT';
+  docId: string;
+  fileName: string;
+  chunkIndex: number;
+  totalChunks: number;
+  chunkData: string;
+  timestamp: string;
+}
+
+// Tampon mémoire pour le réassemblage progressif des fragments entrants
+const chunkReassemblyMap = new Map<string, {
+  fileName: string;
+  totalChunks: number;
+  receivedChunks: Map<number, string>;
+  lastUpdated: number;
+}>();
 
 // Initialisation de la base IndexedDB locale
 function openDatabase(): Promise<IDBDatabase> {
@@ -36,6 +59,9 @@ function openDatabase(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME, { keyPath: 'id' });
       }
+      if (!db.objectStoreNames.contains(CHUNKS_STORE_NAME)) {
+        db.createObjectStore(CHUNKS_STORE_NAME, { keyPath: 'chunkKey' });
+      }
     };
 
     request.onsuccess = () => resolve(request.result);
@@ -43,7 +69,7 @@ function openDatabase(): Promise<IDBDatabase> {
   });
 }
 
-// Canal pont de transmission en direct (WebRTC / Broadcast / Firestore Bridge)
+// Canal pont de transmission en direct (WebRTC / Broadcast / Firestore Realtime Bridge)
 let bridgeChannel: BroadcastChannel | null = null;
 try {
   if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
@@ -53,9 +79,16 @@ try {
   // Ignorer si non supporté
 }
 
+// Relais externe optionnel vers un backend Cloud (Firestore / Supabase)
+let externalCloudSender: ((chunk: DocumentChunkMessage) => Promise<void>) | null = null;
+
+export const setCloudBridgeSender = (fn: ((chunk: DocumentChunkMessage) => Promise<void>) | null) => {
+  externalCloudSender = fn;
+};
+
 export const documentStorage = {
   /**
-   * Enregistrer un document lourd localement dans le coffre IndexedDB
+   * Enregistrer un document complet localement dans le coffre IndexedDB
    */
   async saveDocument(docId: string, fileName: string, dataUrl: string): Promise<void> {
     try {
@@ -74,13 +107,8 @@ export const documentStorage = {
         request.onsuccess = () => resolve();
         request.onerror = () => reject(request.error);
       });
-    } catch {
-      // Fallback mémoire / localStorage si IndexedDB échoue
-      try {
-        localStorage.setItem(`cruisepocket_doc_${docId}`, JSON.stringify({ fileName, dataUrl }));
-      } catch (e) {
-        console.warn("Échec du stockage local du document lourd:", e);
-      }
+    } catch (e) {
+      console.warn("Échec du stockage IndexedDB pour le document lourd:", e);
     }
   },
 
@@ -103,19 +131,13 @@ export const documentStorage = {
               dataUrl: request.result.dataUrl
             });
           } else {
-            // Fallback localStorage
-            const fallback = localStorage.getItem(`cruisepocket_doc_${docId}`);
-            resolve(fallback ? JSON.parse(fallback) : null);
+            resolve(null);
           }
         };
-        request.onerror = () => {
-          const fallback = localStorage.getItem(`cruisepocket_doc_${docId}`);
-          resolve(fallback ? JSON.parse(fallback) : null);
-        };
+        request.onerror = () => resolve(null);
       });
     } catch {
-      const fallback = localStorage.getItem(`cruisepocket_doc_${docId}`);
-      return fallback ? JSON.parse(fallback) : null;
+      return null;
     }
   },
 
@@ -133,7 +155,7 @@ export const documentStorage = {
         request.onerror = () => reject(request.error);
       });
     } catch {
-      localStorage.removeItem(`cruisepocket_doc_${docId}`);
+      // Ignorer
     }
   },
 
@@ -163,43 +185,148 @@ export const documentStorage = {
   },
 
   /**
-   * Émettre un document lourd via le pont éphémère (Firestore / Realtime Bridge)
-   * Le document transite sans rester stocké sur Firestore.
+   * FRAGMENTATION & ÉMISSION :
+   * Découpe le document lourd localement en fragments de 64 Ko
+   * et les transmet via le pont éphémère (Broadcast / Firestore).
    */
-  transmitViaBridge(docId: string, fileName: string, dataUrl: string) {
-    if (bridgeChannel) {
-      bridgeChannel.postMessage({
-        type: 'HEAVY_DOC_TRANSIT',
+  async transmitViaBridge(
+    docId: string, 
+    fileName: string, 
+    dataUrl: string,
+    onProgress?: (sentChunks: number, totalChunks: number) => void
+  ): Promise<void> {
+    // 1. Sauvegarde locale permanente dans le coffre IndexedDB de l'émetteur
+    await this.saveDocument(docId, fileName, dataUrl).catch(console.error);
+
+    // 2. Découpage en fragments de 64 Ko
+    const totalLength = dataUrl.length;
+    const totalChunks = Math.max(1, Math.ceil(totalLength / CHUNK_SIZE));
+
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * CHUNK_SIZE;
+      const end = Math.min(start + CHUNK_SIZE, totalLength);
+      const chunkData = dataUrl.substring(start, end);
+
+      const chunkMsg: DocumentChunkMessage = {
+        type: 'CHUNK_TRANSIT',
         docId,
         fileName,
-        dataUrl,
+        chunkIndex: i,
+        totalChunks,
+        chunkData,
         timestamp: new Date().toISOString()
-      });
-    }
+      };
 
-    // Sauvegarde immédiate dans notre coffre local
-    this.saveDocument(docId, fileName, dataUrl).catch(console.error);
+      // Transmission sur le canal pont local (multi-onglets / même machine)
+      if (bridgeChannel) {
+        bridgeChannel.postMessage(chunkMsg);
+      }
+
+      // Si un relais cloud (Firestore / Realtime) est configuré
+      if (externalCloudSender) {
+        externalCloudSender(chunkMsg).catch((err) => {
+          console.warn("Échec émission fragment cloud:", err);
+        });
+      }
+
+      // Événement local pour feedback UI
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('cruisepocket_chunk_sent', { detail: chunkMsg }));
+      }
+
+      onProgress?.(i + 1, totalChunks);
+
+      // Micro-pause pour laisser respirer le cycle d'exécution
+      if (i % 6 === 0) {
+        await new Promise((res) => setTimeout(res, 2));
+      }
+    }
   },
 
   /**
-   * Écouteur de réception des documents transitant par le pont
+   * RÉCEPTION & RÉASSEMBLAGE :
+   * Reçoit les fragments entrants, les ordonne dans un tampon,
+   * puis réassemble le document complet dès que 100% des fragments sont reçus.
    */
-  subscribeToBridge(onReceive: (docId: string, fileName: string, dataUrl: string) => void) {
+  subscribeToBridge(
+    onReceive: (docId: string, fileName: string, dataUrl: string) => void,
+    onProgress?: (docId: string, received: number, total: number) => void
+  ): () => void {
     if (!bridgeChannel) return () => {};
 
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'HEAVY_DOC_TRANSIT' && event.data.docId && event.data.dataUrl) {
+    const handleMessage = async (event: MessageEvent) => {
+      // 1. Gestion des fragments (Chunking Protocol)
+      if (event.data?.type === 'CHUNK_TRANSIT' && event.data.docId) {
+        const chunk = event.data as DocumentChunkMessage;
+        const { docId, fileName, chunkIndex, totalChunks, chunkData } = chunk;
+
+        let reassembly = chunkReassemblyMap.get(docId);
+        if (!reassembly) {
+          reassembly = {
+            fileName,
+            totalChunks,
+            receivedChunks: new Map<number, string>(),
+            lastUpdated: Date.now()
+          };
+          chunkReassemblyMap.set(docId, reassembly);
+        }
+
+        reassembly.receivedChunks.set(chunkIndex, chunkData);
+        reassembly.lastUpdated = Date.now();
+
+        onProgress?.(docId, reassembly.receivedChunks.size, totalChunks);
+
+        // Dès que tous les fragments sont présents : réassemblage
+        if (reassembly.receivedChunks.size === totalChunks) {
+          const orderedChunks: string[] = [];
+          for (let i = 0; i < totalChunks; i++) {
+            orderedChunks.push(reassembly.receivedChunks.get(i) || '');
+          }
+          const fullDataUrl = orderedChunks.join('');
+
+          // Enregistrement permanent dans le coffre IndexedDB du récepteur (Médecin)
+          await this.saveDocument(docId, fileName, fullDataUrl);
+
+          // Libération immédiate du tampon mémoire
+          chunkReassemblyMap.delete(docId);
+
+          // Notification
+          onReceive(docId, fileName, fullDataUrl);
+
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('cruisepocket_doc_reassembled', {
+              detail: { docId, fileName }
+            }));
+          }
+        }
+      }
+
+      // 2. Rétrocompatibilité : message direct sans découpage
+      else if (event.data?.type === 'HEAVY_DOC_TRANSIT' && event.data.docId && event.data.dataUrl) {
         const { docId, fileName, dataUrl } = event.data;
-        // Sauvegarder automatiquement dans le coffre local dès réception du pont
-        this.saveDocument(docId, fileName, dataUrl).then(() => {
-          onReceive(docId, fileName, dataUrl);
-        });
+        await this.saveDocument(docId, fileName, dataUrl);
+        onReceive(docId, fileName, dataUrl);
       }
     };
 
     bridgeChannel.addEventListener('message', handleMessage);
     return () => {
       bridgeChannel?.removeEventListener('message', handleMessage);
+    };
+  },
+
+  /**
+   * Vérifie la progression actuelle du réassemblage d'un document
+   */
+  getReassemblyProgress(docId: string): { received: number; total: number; percent: number } | null {
+    const reassembly = chunkReassemblyMap.get(docId);
+    if (!reassembly) return null;
+    const received = reassembly.receivedChunks.size;
+    const total = reassembly.totalChunks;
+    return {
+      received,
+      total,
+      percent: Math.round((received / total) * 100)
     };
   }
 };
