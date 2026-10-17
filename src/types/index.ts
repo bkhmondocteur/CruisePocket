@@ -36,6 +36,7 @@ export interface Candidate {
   service_company_name: string;
   doctor_id?: string;
   doctor_name?: string;
+  doctor_license_key?: string;
   is_archived?: boolean;
   archived_at?: string;
   reactivated_at?: string;

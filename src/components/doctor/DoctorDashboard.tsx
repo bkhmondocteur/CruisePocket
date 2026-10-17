@@ -4,6 +4,7 @@ import { dataService } from '../../lib/supabase';
 import { Candidate, MedicalStatus, FinancialStatus, PayerName } from '../../types';
 import { FinancialStats } from './FinancialStats';
 import { PassportViewerModal } from '../common/PassportViewerModal';
+import { isCandidateAssignedToDoctor } from '../../utils/license';
 import { 
   Stethoscope, 
   Clock, 
@@ -62,9 +63,13 @@ export const DoctorDashboard: React.FC = () => {
     // Écouteur en temps réel (Supabase Realtime ou BroadcastChannel multi-onglets)
     const unsubscribe = dataService.subscribeToCandidates((event) => {
       fetchCandidates();
-      if (event.type === 'CANDIDATE_ADDED') {
+      if (
+        event.type === 'CANDIDATE_ADDED' || 
+        event.type === 'UPDATE' || 
+        event.type === 'LOCAL_STORAGE_CHANGE'
+      ) {
         setHasNewAlert(true);
-        setTimeout(() => setHasNewAlert(false), 5000);
+        setTimeout(() => setHasNewAlert(false), 6000);
       } else if (event.type === 'CANDIDATE_DELETED' && event.deletion) {
         // Notification mutuelle si l'action vient d'une société
         if (event.deletion.deletedBy.role === 'societe') {
@@ -169,9 +174,9 @@ export const DoctorDashboard: React.FC = () => {
   }
 
   const displayedList = currentTabList.filter((c) => {
-    // Filtre médecin destinataire
-    if (filterMyDossiersOnly && doctorProfile?.full_name) {
-      const isAssignedToMe = c.doctor_name === doctorProfile.full_name || c.doctor_id === doctorProfile.id;
+    // Filtre médecin destinataire robuste multi-critères
+    if (filterMyDossiersOnly && doctorProfile) {
+      const isAssignedToMe = isCandidateAssignedToDoctor(c, doctorProfile);
       if (!isAssignedToMe) return false;
     }
 
@@ -356,18 +361,34 @@ export const DoctorDashboard: React.FC = () => {
           Chargement des dossiers médicaux...
         </div>
       ) : displayedList.length === 0 ? (
-        <div className="glass-panel rounded-2xl p-12 text-center border border-slate-800 space-y-3">
+        <div className="glass-panel rounded-2xl p-12 text-center border border-slate-800 space-y-4">
           <div className="w-12 h-12 rounded-full bg-slate-900 border border-slate-800 mx-auto flex items-center justify-center text-slate-500">
             {statusTab === 'En instance' ? <Clock className="w-6 h-6" /> : <CheckCircle2 className="w-6 h-6" />}
           </div>
           <h4 className="text-base font-bold text-white">
             Aucun dossier "{statusTab}" pour le moment
           </h4>
-          <p className="text-xs text-slate-400 max-w-sm mx-auto">
-            {statusTab === 'En instance' 
-              ? 'Dès qu’une société de service transmet un nouveau marin, il apparaîtra ici en temps réel.'
-              : 'Les visites d’aptitude terminées seront archivées sous cet onglet.'}
-          </p>
+
+          {filterMyDossiersOnly && currentTabList.length > 0 ? (
+            <div className="space-y-3 pt-2">
+              <p className="text-xs text-amber-300 max-w-md mx-auto leading-relaxed">
+                Il y a actuellement <strong>{currentTabList.length} dossier(s)</strong> reçu(s) dans le système sous l'onglet "{statusTab}", mais ils ne sont pas explicitement restreints à votre cabinet ou sont assignés à un confrère.
+              </p>
+              <button
+                type="button"
+                onClick={() => setFilterMyDossiersOnly(false)}
+                className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-lg shadow-emerald-900/30"
+              >
+                Afficher tous les dossiers ({currentTabList.length})
+              </button>
+            </div>
+          ) : (
+            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              {statusTab === 'En instance' 
+                ? 'Dès qu’une société de service transmet un nouveau marin, il apparaîtra ici en temps réel.'
+                : 'Les visites d’aptitude terminées seront archivées sous cet onglet.'}
+            </p>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -460,7 +481,7 @@ export const DoctorDashboard: React.FC = () => {
                       <Stethoscope className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                       <span>Destinataire : <strong className="text-emerald-300">{cand.doctor_name || 'Non assigné'}</strong></span>
                     </span>
-                    {doctorProfile?.full_name && (cand.doctor_name === doctorProfile.full_name || cand.doctor_id === doctorProfile.id) && (
+                    {doctorProfile && isCandidateAssignedToDoctor(cand, doctorProfile) && (
                       <span className="text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800 px-1.5 py-0.5 rounded">
                         Affecté à vous
                       </span>

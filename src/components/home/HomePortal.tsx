@@ -30,7 +30,7 @@ export const HomePortal: React.FC = () => {
   const [registryTick, setRegistryTick] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Synchronisation automatique par URL si ouvert depuis le Keygen
+  // Synchronisation automatique par URL si ouvert depuis le Keygen & écoute en direct
   useEffect(() => {
     const res = checkAndImportURLParams();
     if (res.imported && res.key && res.role) {
@@ -43,6 +43,42 @@ export const HomePortal: React.FC = () => {
         setLoginError(loginRes.error || null);
       }
     }
+
+    const refreshRegistry = () => {
+      setRegistryTick(t => t + 1);
+    };
+
+    const handleStorage = (e: StorageEvent) => {
+      if (
+        e.key === 'cruisepocket_registered_licenses' ||
+        e.key === 'cruisepocket_license_registry' ||
+        e.key === 'cruisepocket_revoked_licenses'
+      ) {
+        refreshRegistry();
+      }
+    };
+
+    let bc: BroadcastChannel | null = null;
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        bc = new BroadcastChannel('cruisepocket_sync_channel');
+        bc.addEventListener('message', refreshRegistry);
+      }
+    } catch {}
+
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('cruisepocket_license_update', refreshRegistry);
+    window.addEventListener('focus', refreshRegistry);
+    document.addEventListener('visibilitychange', refreshRegistry);
+
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('cruisepocket_license_update', refreshRegistry);
+      window.removeEventListener('focus', refreshRegistry);
+      document.removeEventListener('visibilitychange', refreshRegistry);
+      bc?.removeEventListener('message', refreshRegistry);
+      bc?.close();
+    };
   }, []);
 
   const handleSelectRole = (role: Role) => {

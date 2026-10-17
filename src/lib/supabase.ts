@@ -158,17 +158,41 @@ export const dataService = {
       await supabase.from('candidates').insert([lightweightCopy]);
     }
 
-    // Sauvegarde locale
+    // Sauvegarde locale optimisée et protégée contre le dépassement de quota
     const existing = await this.getCandidates();
-    const updated = [newRecord, ...existing];
-    localStorage.setItem(STORAGE_CANDIDATES_KEY, JSON.stringify(updated));
+    
+    // Pour le stockage local pérenne, on ne stocke pas les multi-mégaoctets de base64 dans localStorage
+    // Le document lourd est déjà sécurisé dans le coffre local IndexedDB via documentStorage.
+    const storageRecord = { ...newRecord };
+    if (storageRecord.passport_file_url && storageRecord.passport_file_url.startsWith('data:')) {
+      delete storageRecord.passport_file_url;
+    }
+
+    const updated = [storageRecord, ...existing];
+    try {
+      localStorage.setItem(STORAGE_CANDIDATES_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.warn('Quota localStorage atteint, purge des pièces lourdes en cours...', e);
+      const cleanList = updated.map(c => {
+        const cpy = { ...c };
+        delete cpy.passport_file_url;
+        return cpy;
+      });
+      try {
+        localStorage.setItem(STORAGE_CANDIDATES_KEY, JSON.stringify(cleanList));
+      } catch (err2) {
+        console.error('Erreur critique persistance localStorage:', err2);
+      }
+    }
 
     // Auto-alimentation de la compagnie de croisière
     await this.addCruiseCompany(candidate.cruise_company);
 
-    // Notification broadcast
+    // Notification broadcast multi-onglets et événements locaux instantanés
     localBroadcast?.postMessage({ type: 'CANDIDATE_ADDED', candidate: newRecord });
-    window.dispatchEvent(new CustomEvent('cruisepocket_candidate_update', { detail: newRecord }));
+    window.dispatchEvent(new CustomEvent('cruisepocket_candidate_update', { 
+      detail: { type: 'CANDIDATE_ADDED', candidate: newRecord } 
+    }));
 
     // Sauvegarde automatique rotative (5 fichiers tournants)
     backupService.triggerAutoBackup().catch(console.error);
@@ -206,7 +230,7 @@ export const dataService = {
       }
     }
 
-    existing[index] = {
+    const updatedRecord = {
       ...existing[index],
       ...updates,
       is_archived,
@@ -215,9 +239,29 @@ export const dataService = {
       updated_at: new Date().toISOString()
     };
 
-    localStorage.setItem(STORAGE_CANDIDATES_KEY, JSON.stringify(existing));
+    if (updatedRecord.passport_file_url && updatedRecord.passport_file_url.startsWith('data:')) {
+      delete updatedRecord.passport_file_url;
+    }
+
+    existing[index] = updatedRecord;
+
+    try {
+      localStorage.setItem(STORAGE_CANDIDATES_KEY, JSON.stringify(existing));
+    } catch {
+      const cleanList = existing.map(c => {
+        const cpy = { ...c };
+        delete cpy.passport_file_url;
+        return cpy;
+      });
+      try {
+        localStorage.setItem(STORAGE_CANDIDATES_KEY, JSON.stringify(cleanList));
+      } catch {}
+    }
+
     localBroadcast?.postMessage({ type: 'CANDIDATE_UPDATED', candidate: existing[index] });
-    window.dispatchEvent(new CustomEvent('cruisepocket_candidate_update', { detail: existing[index] }));
+    window.dispatchEvent(new CustomEvent('cruisepocket_candidate_update', { 
+      detail: { type: 'CANDIDATE_UPDATED', candidate: existing[index] } 
+    }));
 
     // Sauvegarde automatique rotative (5 fichiers tournants)
     backupService.triggerAutoBackup().catch(console.error);
@@ -400,13 +444,15 @@ export const dataService = {
     // Écouteur local
     const handleStorageEvent = (e: StorageEvent) => {
       if (e.key === STORAGE_CANDIDATES_KEY) {
-        callback({ type: 'LOCAL_STORAGE_CHANGE' });
+        callback({ type: 'CANDIDATE_ADDED' });
       }
     };
 
     const handleCustomUpdate = (e: Event) => {
-      const custom = e as CustomEvent<Candidate>;
-      callback({ type: 'UPDATE', payload: custom.detail });
+      const custom = e as CustomEvent<any>;
+      const eventType = custom.detail?.type || 'CANDIDATE_ADDED';
+      const payload = custom.detail?.candidate || custom.detail;
+      callback({ type: eventType, payload });
     };
 
     const handleCustomDeletion = (e: Event) => {
@@ -416,21 +462,91 @@ export const dataService = {
 
     const handleBroadcast = (e: MessageEvent) => {
       callback({ 
-        type: e.data?.type || 'BROADCAST', 
+        type: e.data?.type || 'CANDIDATE_ADDED', 
         payload: e.data?.candidate,
         deletion: e.data?.deletion
       });
     };
 
+    const handleFocusOrVisible = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        callback({ type: 'LOCAL_STORAGE_CHANGE' });
+      }
+    };
+
     window.addEventListener('storage', handleStorageEvent);
     window.addEventListener('cruisepocket_candidate_update', handleCustomUpdate);
     window.addEventListener('cruisepocket_candidate_deleted', handleCustomDeletion);
+    window.addEventListener('focus', handleFocusOrVisible);
+    document.addEventListener('visibilitychange', handleFocusOrVisible);
     localBroadcast?.addEventListener('message', handleBroadcast);
 
     return () => {
       window.removeEventListener('storage', handleStorageEvent);
       window.removeEventListener('cruisepocket_candidate_update', handleCustomUpdate);
       window.removeEventListener('cruisepocket_candidate_deleted', handleCustomDeletion);
+      window.removeEventListener('focus', handleFocusOrVisible);
+      document.removeEventListener('visibilitychange', handleFocusOrVisible);
+      localBroadcast?.removeEventListener('message', handleBroadcast);
+    };
+  },
+
+  /**
+   * Écouteur en temps réel pour l'ajout ou la mise à jour des médecins agréés
+   * Détecte instantanément l'enregistrement de médecins dans le Keygen ou le registre
+   */
+  subscribeToDoctors(callback: (doctors: Doctor[]) => void): () => void {
+    const refresh = async () => {
+      const docs = await dataService.getAvailableDoctors();
+      callback(docs);
+    };
+
+    // Appel initial immédiat
+    refresh();
+
+    const handleStorageEvent = (e: StorageEvent) => {
+      if (
+        e.key === 'cruisepocket_registered_licenses' ||
+        e.key === 'cruisepocket_license_registry' ||
+        e.key === 'cruisepocket_revoked_licenses'
+      ) {
+        refresh();
+      }
+    };
+
+    const handleCustomLicense = () => {
+      refresh();
+    };
+
+    const handleBroadcast = (e: MessageEvent) => {
+      const t = e.data?.type;
+      if (
+        t === 'LICENSE_REGISTERED' ||
+        t === 'LICENSES_UPDATED' ||
+        t === 'LICENSE_REVOKED' ||
+        t === 'DOCTOR_ADDED'
+      ) {
+        refresh();
+      }
+    };
+
+    const handleFocusOrVisible = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        refresh();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageEvent);
+    window.addEventListener('cruisepocket_license_update', handleCustomLicense);
+    window.addEventListener('focus', handleFocusOrVisible);
+    document.addEventListener('visibilitychange', handleFocusOrVisible);
+    localBroadcast?.addEventListener('message', handleBroadcast);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageEvent);
+      window.removeEventListener('cruisepocket_license_update', handleCustomLicense);
+      window.removeEventListener('focus', handleFocusOrVisible);
+      document.removeEventListener('visibilitychange', handleFocusOrVisible);
       localBroadcast?.removeEventListener('message', handleBroadcast);
     };
   }

@@ -3,7 +3,8 @@ import {
   LicenseGenerationDoctorInput, 
   Role, 
   ServiceCompany, 
-  Doctor 
+  Doctor,
+  Candidate
 } from '../types';
 
 /**
@@ -170,9 +171,15 @@ export function getLicenseRegistry(): {
             return;
           }
 
+          const sig = verifyLicenseSignature(keyUpper);
+
           if (item.role === 'medecin') {
+            const coreId = (sig.isValid && sig.hash)
+              ? `med-${sig.hash.toLowerCase()}`
+              : `med-${keyUpper.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+
             doctors[keyUpper] = {
-              id: `med-${keyUpper.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
+              id: coreId,
               full_name: item.holderName,
               order_number: item.detail1?.replace(/^Ordre:\s*/i, '').replace(/[^0-9/]/g, '') || item.detail1 || 'Certifié',
               practice_location: item.location || 'Cabinet Médical Maritime',
@@ -180,8 +187,12 @@ export function getLicenseRegistry(): {
               created_at: item.createdAt || new Date().toISOString()
             };
           } else if (item.role === 'societe') {
+            const coreId = (sig.isValid && sig.hash)
+              ? `soc-${sig.hash.toLowerCase()}`
+              : `soc-${keyUpper.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+
             companies[keyUpper] = {
-              id: `soc-${keyUpper.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
+              id: coreId,
               name: item.holderName,
               manager_name: item.detail1?.replace(/^Resp:\s*/i, '') || 'Responsable',
               phone: item.detail2?.replace(/^Tél:\s*/i, '') || '',
@@ -232,6 +243,22 @@ export function saveRegisteredLicense(role: Role, key: string, data: Doctor | Se
       list.unshift(newEntry);
     }
     localStorage.setItem(STORAGE_KEY_LICENSES, JSON.stringify(list));
+
+    // Diffuser immédiatement en temps réel multi-onglets et événements locaux
+    if (typeof window !== 'undefined') {
+      try {
+        const bc = new BroadcastChannel('cruisepocket_sync_channel');
+        bc.postMessage({
+          type: 'LICENSE_REGISTERED',
+          role,
+          key: keyUpper,
+          profile: data
+        });
+      } catch {}
+      window.dispatchEvent(new CustomEvent('cruisepocket_license_update', {
+        detail: { role, key: keyUpper, profile: data }
+      }));
+    }
   } catch (e) {
     console.error('Erreur sauvegarde registre:', e);
   }
@@ -415,6 +442,14 @@ export function revokeLicense(key: string): void {
     if (!list.includes(trimmed)) {
       list.push(trimmed);
       localStorage.setItem(REVOKED_LICENSES_KEY, JSON.stringify(list));
+
+      if (typeof window !== 'undefined') {
+        try {
+          const bc = new BroadcastChannel('cruisepocket_sync_channel');
+          bc.postMessage({ type: 'LICENSE_REVOKED', key: trimmed });
+        } catch {}
+        window.dispatchEvent(new CustomEvent('cruisepocket_license_update', { detail: { key: trimmed, status: 'revoked' } }));
+      }
     }
   } catch (e) {
     console.error('Erreur révocation licence:', e);
@@ -432,6 +467,14 @@ export function unrevokeLicense(key: string): void {
     const list: string[] = JSON.parse(raw);
     const updated = list.filter(k => k !== trimmed);
     localStorage.setItem(REVOKED_LICENSES_KEY, JSON.stringify(updated));
+
+    if (typeof window !== 'undefined') {
+      try {
+        const bc = new BroadcastChannel('cruisepocket_sync_channel');
+        bc.postMessage({ type: 'LICENSES_UPDATED', key: trimmed });
+      } catch {}
+      window.dispatchEvent(new CustomEvent('cruisepocket_license_update', { detail: { key: trimmed, status: 'restored' } }));
+    }
   } catch (e) {
     console.error('Erreur rétablissement licence:', e);
   }
@@ -540,4 +583,65 @@ export function validateLicense(key: string, expectedRole?: Role): {
     role: detectedRole,
     profile
   };
+}
+
+/**
+ * Détermine avec certitude si un dossier candidat est assigné au médecin connecté.
+ * Vérifie de façon multi-critères : clé de licence, ID médecin, hash cryptographique,
+ * nom complet normalisé (insensible à la casse, espaces et préfixe Dr.) et n° d'ordre.
+ */
+export function isCandidateAssignedToDoctor(candidate: Candidate, doctor: Doctor | null): boolean {
+  if (!doctor) return false;
+
+  // 1. Clé de licence exacte (la plus robuste et univoque)
+  if (candidate.doctor_license_key && doctor.license_key) {
+    if (candidate.doctor_license_key.trim().toUpperCase() === doctor.license_key.trim().toUpperCase()) {
+      return true;
+    }
+  }
+
+  // 2. ID exact
+  if (candidate.doctor_id && doctor.id) {
+    if (candidate.doctor_id === doctor.id) return true;
+  }
+
+  // 3. Correspondance de hash (segment cryptographique central)
+  const docHash = doctor.license_key ? doctor.license_key.split('-')[3]?.toLowerCase() : null;
+  if (docHash) {
+    if (candidate.doctor_id && candidate.doctor_id.toLowerCase().includes(docHash)) {
+      return true;
+    }
+    if (candidate.doctor_license_key && candidate.doctor_license_key.toLowerCase().includes(docHash)) {
+      return true;
+    }
+  }
+
+  // 4. Correspondance souple de nom
+  if (candidate.doctor_name && doctor.full_name) {
+    const cleanCandName = candidate.doctor_name.toLowerCase().replace(/^dr\.?\s*/i, '').trim();
+    const cleanDocName = doctor.full_name.toLowerCase().replace(/^dr\.?\s*/i, '').trim();
+    if (cleanCandName === cleanDocName) return true;
+    if (cleanCandName.length >= 3 && cleanDocName.length >= 3) {
+      if (cleanCandName.includes(cleanDocName) || cleanDocName.includes(cleanCandName)) {
+        return true;
+      }
+    }
+  }
+
+  // 5. Numéro d'Ordre
+  if (doctor.order_number && doctor.order_number.length >= 3) {
+    const cleanOrder = doctor.order_number.replace(/[^0-9]/g, '');
+    if (cleanOrder.length >= 3) {
+      if (candidate.doctor_name?.includes(cleanOrder) || candidate.doctor_id?.includes(cleanOrder)) {
+        return true;
+      }
+    }
+  }
+
+  // Si aucun médecin spécifique n'a été assigné lors de la création, le dossier est partagé
+  if (!candidate.doctor_id && !candidate.doctor_name && !candidate.doctor_license_key) {
+    return true;
+  }
+
+  return false;
 }

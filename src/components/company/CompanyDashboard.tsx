@@ -86,15 +86,18 @@ export const CompanyDashboard: React.FC = () => {
   useEffect(() => {
     loadCruiseCompanies();
     loadTransfers();
-    dataService.getAvailableDoctors().then((docs) => {
+
+    // Écouteur en temps réel de la liste des médecins agréés (Keygen / Registre)
+    const unsubscribeDoctors = dataService.subscribeToDoctors((docs) => {
       setAvailableDoctors(docs);
-      if (docs.length > 0) {
-        setSelectedDoctorId(docs[0].id);
-      }
+      setSelectedDoctorId((prev) => {
+        if (prev && docs.some(d => d.id === prev)) return prev;
+        return docs.length > 0 ? docs[0].id : '';
+      });
     });
 
-    // Écouter les mises à jour réactives (y compris suppressions mutuelles)
-    const unsubscribe = dataService.subscribeToCandidates((event) => {
+    // Écouter les mises à jour réactives des candidats (y compris suppressions mutuelles)
+    const unsubscribeCandidates = dataService.subscribeToCandidates((event) => {
       loadTransfers();
       loadCruiseCompanies();
 
@@ -111,7 +114,10 @@ export const CompanyDashboard: React.FC = () => {
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeDoctors();
+      unsubscribeCandidates();
+    };
   }, []);
 
   const handleDeleteCandidate = async (candidate: Candidate) => {
@@ -221,6 +227,7 @@ export const CompanyDashboard: React.FC = () => {
         embarkation_date: embarkationDate,
         doctor_id: recipientDoctor?.id,
         doctor_name: recipientDoctor?.full_name,
+        doctor_license_key: recipientDoctor?.license_key,
         medical_status: 'En instance' as const,
         financial_amount: 180.00,
         financial_status: 'Non payé' as const,

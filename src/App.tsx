@@ -1,13 +1,22 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from './context/AuthContext';
 import { Header } from './components/common/Header';
 import { HomePortal } from './components/home/HomePortal';
 import { CompanyDashboard } from './components/company/CompanyDashboard';
 import { DoctorDashboard } from './components/doctor/DoctorDashboard';
+import { documentStorage } from './lib/documentStorage';
 import { ShieldCheck } from 'lucide-react';
 
 export const App: React.FC = () => {
   const { isAuthenticated, role } = useAuth();
+
+  // Écoute automatique des documents lourds transitant par le pont
+  useEffect(() => {
+    const unsub = documentStorage.subscribeToBridge(() => {
+      // Document automatiquement stocké dans le coffre IndexedDB
+    });
+    return () => unsub();
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-maritime-500 selection:text-white">

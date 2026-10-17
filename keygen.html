@@ -480,6 +480,63 @@
         // Met à jour la liste des clés révoquées pour CruisePocket
         const revokedKeys = licenses.filter(l => l.status === 'revoked').map(l => l.key.toUpperCase());
         localStorage.setItem(STORAGE_KEY_REVOKED, JSON.stringify(revokedKeys));
+
+        // Mettre à jour aussi le registre direct cruisepocket_license_registry pour synchronisation immédiate avec CruisePocket
+        try {
+          const regRaw = localStorage.getItem('cruisepocket_license_registry');
+          const reg = regRaw ? JSON.parse(regRaw) : { doctors: {}, companies: {} };
+          if (!reg.doctors) reg.doctors = {};
+          if (!reg.companies) reg.companies = {};
+          licenses.forEach(l => {
+            const k = l.key.toUpperCase();
+            if (l.status === 'active') {
+              if (l.role === 'medecin') {
+                const cleanOrder = (l.detail1 || '').replace(/^Ordre:\s*/i, '').replace(/[^0-9/]/g, '') || 'Certifié';
+                const parts = k.split('-');
+                const coreId = parts.length >= 4 ? `med-${parts[3].toLowerCase()}` : `med-${k.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+                reg.doctors[k] = {
+                  id: coreId,
+                  full_name: l.holderName,
+                  order_number: cleanOrder,
+                  practice_location: l.location || 'Cabinet Médical Maritime',
+                  license_key: l.key,
+                  created_at: l.createdAt || new Date().toISOString()
+                };
+              } else {
+                const parts = k.split('-');
+                const coreId = parts.length >= 4 ? `soc-${parts[3].toLowerCase()}` : `soc-${k.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+                reg.companies[k] = {
+                  id: coreId,
+                  name: l.holderName,
+                  manager_name: (l.detail1 || '').replace(/^Resp:\s*/i, '') || 'Responsable',
+                  phone: (l.detail2 || '').replace(/^Tél:\s*/i, '') || '',
+                  location: l.location || 'Port Maritime',
+                  license_key: l.key,
+                  created_at: l.createdAt || new Date().toISOString()
+                };
+              }
+            } else {
+              delete reg.doctors[k];
+              delete reg.companies[k];
+            }
+          });
+          localStorage.setItem('cruisepocket_license_registry', JSON.stringify(reg));
+        } catch (errReg) {}
+
+        // Diffusion temps réel multi-onglets (BroadcastChannel et CustomEvent)
+        try {
+          if (typeof BroadcastChannel !== 'undefined') {
+            const bc = new BroadcastChannel('cruisepocket_sync_channel');
+            bc.postMessage({
+              type: 'LICENSES_UPDATED',
+              timestamp: Date.now()
+            });
+          }
+        } catch (errBc) {}
+
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('cruisepocket_license_update'));
+        }
       } catch (e) {
         console.error("Erreur sauvegarde licences:", e);
       }
