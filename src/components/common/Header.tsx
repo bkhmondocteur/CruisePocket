@@ -9,12 +9,9 @@ import {
   WifiOff, 
   ShieldCheck,
   Database,
-  ArrowLeftRight,
-  ExternalLink,
   RotateCw
 } from 'lucide-react';
 import { BackupModal } from './BackupModal';
-import { getLicenseRegistry, isLicenseRevoked, FICTIVE_LICENSE_KEYS, FICTIVE_NAMES } from '../../utils/license';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -22,24 +19,11 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export const Header: React.FC = () => {
-  const { role, doctorProfile, companyProfile, logout, loginWithLicense } = useAuth();
+  const { role, doctorProfile, companyProfile, logout } = useAuth();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
-
-  // Registre des licences disponibles pour la bascule rapide
-  const registry = getLicenseRegistry();
-  const availableDoctors = Object.values(registry.doctors).filter(d => 
-    !isLicenseRevoked(d.license_key) &&
-    !FICTIVE_LICENSE_KEYS.includes(d.license_key.toUpperCase()) &&
-    !FICTIVE_NAMES.includes(d.full_name)
-  );
-  const availableCompanies = Object.values(registry.companies).filter(c => 
-    !isLicenseRevoked(c.license_key) &&
-    !FICTIVE_LICENSE_KEYS.includes(c.license_key.toUpperCase()) &&
-    !FICTIVE_NAMES.includes(c.name)
-  );
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -190,47 +174,7 @@ export const Header: React.FC = () => {
             </button>
           )}
 
-          {/* Bascule Rapide de Profil (Pour faciliter le test en temps réel Société <-> Médecin) */}
-          {role && (
-            <div className="flex items-center gap-1.5">
-              {role === 'societe' && availableDoctors.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => loginWithLicense(availableDoctors[0].license_key, 'medecin')}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/80 text-emerald-300 text-xs font-bold transition-all shadow-sm cursor-pointer"
-                  title={`Basculer immédiatement sur l'Espace Médecin (${availableDoctors[0].full_name})`}
-                >
-                  <Stethoscope className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="hidden md:inline">Voir Espace Médecin</span>
-                  <ArrowLeftRight className="w-3 h-3 text-emerald-400" />
-                </button>
-              )}
 
-              {role === 'medecin' && availableCompanies.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => loginWithLicense(availableCompanies[0].license_key, 'societe')}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-700/80 text-cyan-300 text-xs font-bold transition-all shadow-sm cursor-pointer"
-                  title={`Basculer immédiatement sur l'Espace Société (${availableCompanies[0].name})`}
-                >
-                  <Building2 className="w-3.5 h-3.5 text-cyan-400" />
-                  <span className="hidden md:inline">Voir Espace Société</span>
-                  <ArrowLeftRight className="w-3 h-3 text-cyan-400" />
-                </button>
-              )}
-
-              {/* Raccourci vers 2ème onglet de test simultané */}
-              <a
-                href={`${import.meta.env.BASE_URL}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-1.5 text-slate-400 hover:text-cyan-300 hover:bg-slate-800 rounded-lg transition-colors hidden sm:flex items-center"
-                title="Ouvrir un 2ème onglet (pour tester Médecin & Société en simultané)"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            </div>
-          )}
 
           {/* Profil Actif & Déconnexion */}
           {role && (

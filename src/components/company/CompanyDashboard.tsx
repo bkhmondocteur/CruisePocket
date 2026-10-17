@@ -62,6 +62,14 @@ export const CompanyDashboard: React.FC = () => {
     time: string;
   } | null>(null);
 
+  // Notification d'accusé de réception ou consultation par le médecin
+  const [receiptNotice, setReceiptNotice] = useState<{
+    candidateName: string;
+    doctorName: string;
+    time: string;
+    action: 'opened_app' | 'consulted_fiche';
+  } | null>(null);
+
   // History list & Tabs (Actifs vs Archivés)
   const [recentTransfers, setRecentTransfers] = useState<Candidate[]>([]);
   const [transferTab, setTransferTab] = useState<'actifs' | 'archives'>('actifs');
@@ -157,6 +165,20 @@ export const CompanyDashboard: React.FC = () => {
             time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
           });
         }
+      } else if (event.type === 'CANDIDATE_CONSULTED' && event.receipt) {
+        setReceiptNotice({
+          candidateName: event.receipt.candidateName,
+          doctorName: event.receipt.doctorName,
+          time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+          action: 'consulted_fiche'
+        });
+      } else if (event.type === 'CANDIDATE_RECEIVED' && event.receipt) {
+        setReceiptNotice({
+          candidateName: event.receipt.candidateName,
+          doctorName: event.receipt.doctorName,
+          time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+          action: 'opened_app'
+        });
       }
     });
 
@@ -360,6 +382,43 @@ export const CompanyDashboard: React.FC = () => {
           <button
             onClick={() => setDeletionNotice(null)}
             className="p-1.5 text-amber-400 hover:text-white rounded-lg hover:bg-amber-900/60 transition-colors"
+            title="Fermer la notification"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Accusé de Réception / Consultation par le Médecin en Direct */}
+      {receiptNotice && (
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/90 via-slate-950 to-cyan-950/90 border border-emerald-500/70 text-emerald-200 text-xs shadow-xl flex items-start justify-between gap-3 animate-fadeIn">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-xl bg-emerald-900/60 text-emerald-300 mt-0.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div>
+              <div className="font-bold text-white text-sm flex items-center gap-2">
+                <span>
+                  {receiptNotice.action === 'consulted_fiche' 
+                    ? 'Accusé de Réception : Fiche Consultée par le Médecin' 
+                    : 'Accusé de Réception : Dossier Reçu par le Médecin'}
+                </span>
+                <span className="text-[10px] bg-emerald-900/80 px-2 py-0.5 rounded text-emerald-300 font-mono">
+                  {receiptNotice.time}
+                </span>
+              </div>
+              <p className="mt-1 text-emerald-200/90 leading-relaxed">
+                {receiptNotice.action === 'consulted_fiche' ? (
+                  <>Le <strong>{receiptNotice.doctorName}</strong> vient d'ouvrir et de consulter la fiche complète du marin <strong>{receiptNotice.candidateName}</strong>.</>
+                ) : (
+                  <>Le <strong>{receiptNotice.doctorName}</strong> a ouvert son application. Le dossier de <strong>{receiptNotice.candidateName}</strong> est bien synchronisé et en cours d'attente sur son poste.</>
+                )}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setReceiptNotice(null)}
+            className="p-1.5 text-emerald-400 hover:text-white rounded-lg hover:bg-emerald-900/60 transition-colors"
             title="Fermer la notification"
           >
             <X className="w-4 h-4" />
@@ -836,10 +895,36 @@ export const CompanyDashboard: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Médecin Destinataire */}
-                    <div className="pt-1.5 border-t border-slate-900/80 flex items-center gap-1.5 text-[11px] text-slate-400">
-                      <Stethoscope className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      <span>Destinataire : <strong className="text-emerald-300">{cand.doctor_name || 'Non assigné'}</strong></span>
+                    {/* Médecin Destinataire & Accusé de Réception / Consultation */}
+                    <div className="pt-1.5 border-t border-slate-900/80 space-y-1.5">
+                      <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                        <Stethoscope className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <span>Destinataire : <strong className="text-emerald-300">{cand.doctor_name || 'Non assigné'}</strong></span>
+                      </div>
+
+                      {/* Statut Réception / Consultation en temps réel */}
+                      {cand.doctor_consulted_at ? (
+                        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-950/70 border border-emerald-700/60 text-[11px] text-emerald-300">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span>
+                            <strong>Accusé de consultation :</strong> Dossier ouvert et consulté par {cand.doctor_consulted_by || cand.doctor_name || 'le Médecin'} le {new Date(cand.doctor_consulted_at).toLocaleDateString('fr-FR')} à {new Date(cand.doctor_consulted_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      ) : cand.doctor_received_at ? (
+                        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-cyan-950/60 border border-cyan-800/60 text-[11px] text-cyan-300">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                          <span>
+                            <strong>Reçu dans l'application :</strong> Le {cand.doctor_name || 'Médecin'} a ouvert son espace le {new Date(cand.doctor_received_at).toLocaleDateString('fr-FR')} à {new Date(cand.doctor_received_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} (en attente de consultation de la fiche)
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800 text-[11px] text-slate-400">
+                          <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0 animate-pulse" />
+                          <span>
+                            <strong>Transmis :</strong> En attente d'ouverture par {cand.doctor_name || 'le Médecin'}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Actions : Supprimer dossier + Fiche Candidat + Consulter passeport */}

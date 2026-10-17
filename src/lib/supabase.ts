@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
-import { Candidate, CandidateEvent, DeletionInfo, Role, Doctor } from '../types';
+import { Candidate, CandidateEvent, DeletionInfo, Role, Doctor, ConsultationReceipt } from '../types';
 import { backupService } from './backupService';
 import { documentStorage } from './documentStorage';
-import { isLicenseRevoked, getLicenseRegistry, FICTIVE_LICENSE_KEYS, FICTIVE_NAMES } from '../utils/license';
+import { isLicenseRevoked, getLicenseRegistry, FICTIVE_LICENSE_KEYS, FICTIVE_NAMES, isCandidateAssignedToDoctor } from '../utils/license';
 
 export const INITIAL_APPROVED_DOCTORS: Doctor[] = [];
 export const FICTIVE_CANDIDATE_IDS = ['cand-101', 'cand-102', 'cand-103', 'cand-104'];
@@ -336,6 +336,139 @@ export const dataService = {
   },
 
   /**
+   * Confirmation automatique de réception dans l'application Médecin :
+   * Lorsque le médecin ouvre son espace, tous les dossiers qui lui sont assignés
+   * et qui n'ont pas encore d'accusé de réception sont marqués "reçus".
+   */
+  async confirmDoctorAppReception(doctor: Doctor): Promise<void> {
+    if (!doctor) return;
+    const existing = await this.getCandidates();
+    let hasChanges = false;
+    const nowIso = new Date().toISOString();
+
+    const updatedList = existing.map((c) => {
+      if (!c.doctor_received_at && isCandidateAssignedToDoctor(c, doctor)) {
+        hasChanges = true;
+        const updated = {
+          ...c,
+          doctor_received_at: nowIso,
+          doctor_name: c.doctor_name || doctor.full_name,
+          updated_at: nowIso
+        };
+
+        const receipt: ConsultationReceipt = {
+          candidateId: c.id,
+          candidateName: `${c.civility} ${c.last_name} ${c.first_name}`,
+          doctorName: doctor.full_name,
+          timestamp: nowIso,
+          action: 'opened_app'
+        };
+
+        localBroadcast?.postMessage({
+          type: 'CANDIDATE_RECEIVED',
+          candidate: updated,
+          receipt
+        });
+
+        window.dispatchEvent(new CustomEvent('cruisepocket_candidate_receipt', {
+          detail: { type: 'CANDIDATE_RECEIVED', candidate: updated, receipt }
+        }));
+
+        return updated;
+      }
+      return c;
+    });
+
+    if (hasChanges) {
+      const cleanList = updatedList.map(c => {
+        const cpy = { ...c };
+        delete cpy.passport_file_url;
+        return cpy;
+      });
+      try {
+        localStorage.setItem(STORAGE_CANDIDATES_KEY, JSON.stringify(cleanList));
+      } catch (e) {
+        console.warn('Erreur mise à jour accusé réception:', e);
+      }
+      if (isSupabaseConfigured && supabase) {
+        for (const c of updatedList) {
+          if (c.doctor_received_at === nowIso) {
+            supabase.from('candidates').update({ doctor_received_at: nowIso }).eq('id', c.id);
+          }
+        }
+      }
+    }
+  },
+
+  /**
+   * Confirmation de consultation :
+   * Déclenchée précisément lorsque le médecin ouvre et consulte la fiche d'un candidat.
+   */
+  async confirmDoctorConsultation(candidateId: string, doctorName: string): Promise<Candidate | null> {
+    const existing = await this.getCandidates();
+    const index = existing.findIndex(c => c.id === candidateId);
+    if (index === -1) return null;
+
+    const nowIso = new Date().toISOString();
+    const current = existing[index];
+
+    // Marquer la consultation
+    const updatedRecord: Candidate = {
+      ...current,
+      doctor_consulted_at: nowIso,
+      doctor_consulted_by: doctorName,
+      doctor_received_at: current.doctor_received_at || nowIso,
+      updated_at: nowIso
+    };
+
+    delete updatedRecord.passport_file_url;
+    existing[index] = updatedRecord;
+
+    const cleanExisting = existing.map(c => {
+      const cpy = { ...c };
+      delete cpy.passport_file_url;
+      return cpy;
+    });
+
+    try {
+      localStorage.setItem(STORAGE_CANDIDATES_KEY, JSON.stringify(cleanExisting));
+    } catch {
+      // Ignorer
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      supabase.from('candidates').update({
+        doctor_consulted_at: nowIso,
+        doctor_consulted_by: doctorName,
+        doctor_received_at: current.doctor_received_at || nowIso
+      }).eq('id', candidateId);
+    }
+
+    const receipt: ConsultationReceipt = {
+      candidateId,
+      candidateName: `${current.civility} ${current.last_name} ${current.first_name}`,
+      doctorName,
+      timestamp: nowIso,
+      action: 'consulted_fiche'
+    };
+
+    localBroadcast?.postMessage({ 
+      type: 'CANDIDATE_CONSULTED', 
+      candidate: updatedRecord, 
+      receipt 
+    });
+
+    window.dispatchEvent(new CustomEvent('cruisepocket_candidate_receipt', { 
+      detail: { type: 'CANDIDATE_CONSULTED', candidate: updatedRecord, receipt } 
+    }));
+
+    // Sauvegarde automatique tournante
+    backupService.triggerAutoBackup().catch(console.error);
+
+    return updatedRecord;
+  },
+
+  /**
    * Réarchivage à la sortie de consultation de la fiche candidat
    * Règle générale : réarchivé de nouveau sauf en cas de renouvellement de contrat ou visite intermédiaire.
    * Exception règle métier : Si le type de contrat est (ou est passé en) « Renouvellement de contrat »
@@ -488,7 +621,17 @@ export const dataService = {
       callback({ 
         type: e.data?.type || 'CANDIDATE_ADDED', 
         payload: e.data?.candidate,
-        deletion: e.data?.deletion
+        deletion: e.data?.deletion,
+        receipt: e.data?.receipt
+      });
+    };
+
+    const handleCustomReceipt = (e: Event) => {
+      const custom = e as CustomEvent<any>;
+      callback({
+        type: custom.detail?.type || 'CANDIDATE_CONSULTED',
+        payload: custom.detail?.candidate,
+        receipt: custom.detail?.receipt
       });
     };
 
@@ -501,6 +644,7 @@ export const dataService = {
     window.addEventListener('storage', handleStorageEvent);
     window.addEventListener('cruisepocket_candidate_update', handleCustomUpdate);
     window.addEventListener('cruisepocket_candidate_deleted', handleCustomDeletion);
+    window.addEventListener('cruisepocket_candidate_receipt', handleCustomReceipt);
     window.addEventListener('focus', handleFocusOrVisible);
     document.addEventListener('visibilitychange', handleFocusOrVisible);
     localBroadcast?.addEventListener('message', handleBroadcast);
@@ -509,6 +653,7 @@ export const dataService = {
       window.removeEventListener('storage', handleStorageEvent);
       window.removeEventListener('cruisepocket_candidate_update', handleCustomUpdate);
       window.removeEventListener('cruisepocket_candidate_deleted', handleCustomDeletion);
+      window.removeEventListener('cruisepocket_candidate_receipt', handleCustomReceipt);
       window.removeEventListener('focus', handleFocusOrVisible);
       document.removeEventListener('visibilitychange', handleFocusOrVisible);
       localBroadcast?.removeEventListener('message', handleBroadcast);

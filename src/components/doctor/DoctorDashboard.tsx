@@ -87,6 +87,23 @@ export const DoctorDashboard: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
+  // Confirmer automatiquement la réception des dossiers assignés dès l'ouverture de l'application
+  useEffect(() => {
+    if (doctorProfile) {
+      dataService.confirmDoctorAppReception(doctorProfile).catch(console.error);
+    }
+  }, [doctorProfile]);
+
+  const handleOpenFiche = (cand: Candidate) => {
+    setSelectedFicheCandidate(cand);
+    dataService.confirmDoctorConsultation(cand.id, doctorProfile?.full_name || 'Dr. Médecin Agréé').catch(console.error);
+  };
+
+  const handleOpenPassport = (cand: Candidate) => {
+    setSelectedPassportCandidate(cand);
+    dataService.confirmDoctorConsultation(cand.id, doctorProfile?.full_name || 'Dr. Médecin Agréé').catch(console.error);
+  };
+
   const handleDeleteCandidate = async (candidate: Candidate) => {
     const confirmDelete = window.confirm(
       `Êtes-vous sûr de vouloir supprimer définitivement le dossier de ${candidate.civility} ${candidate.last_name} ${candidate.first_name} ?\n\nLa Société de Service (${candidate.service_company_name}) sera immédiatement notifiée en temps réel.`
@@ -507,7 +524,7 @@ export const DoctorDashboard: React.FC = () => {
 
                 {/* Pièce jointe passeport */}
                 <div 
-                  onClick={() => setSelectedPassportCandidate(cand)}
+                  onClick={() => handleOpenPassport(cand)}
                   className="mt-2.5 p-2 rounded-lg bg-slate-950 hover:bg-slate-900 border border-slate-800 hover:border-slate-700 flex items-center justify-between text-[11px] cursor-pointer transition-colors"
                 >
                   <div className="flex items-center gap-1.5 text-slate-300 truncate">
@@ -570,7 +587,7 @@ export const DoctorDashboard: React.FC = () => {
                 {/* BOUTON OUVRIR FICHE CANDIDAT / RÉCUPÉRATION ARCHIVE INSTANTANÉE */}
                 <button
                   type="button"
-                  onClick={() => setSelectedFicheCandidate(cand)}
+                  onClick={() => handleOpenFiche(cand)}
                   className="w-full mt-2 py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm group"
                 >
                   {cand.is_archived ? (

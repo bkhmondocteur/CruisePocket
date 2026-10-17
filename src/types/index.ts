@@ -37,6 +37,9 @@ export interface Candidate {
   doctor_id?: string;
   doctor_name?: string;
   doctor_license_key?: string;
+  doctor_received_at?: string; // Horodatage d'ouverture de l'application par le médecin
+  doctor_consulted_at?: string; // Horodatage précis d'ouverture et consultation de la fiche par le médecin
+  doctor_consulted_by?: string; // Nom du médecin ayant consulté le dossier
   is_archived?: boolean;
   archived_at?: string;
   reactivated_at?: string;
@@ -111,8 +114,18 @@ export interface DeletionInfo {
   timestamp: string;
 }
 
+export interface ConsultationReceipt {
+  candidateId: string;
+  candidateName: string;
+  doctorName: string;
+  timestamp: string;
+  action: 'opened_app' | 'consulted_fiche';
+}
+
 export interface CandidateEvent {
   type: string;
   payload?: Candidate;
   deletion?: DeletionInfo;
+  receipt?: ConsultationReceipt;
 }
+
