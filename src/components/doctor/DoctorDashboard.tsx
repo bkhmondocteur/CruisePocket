@@ -221,16 +221,16 @@ export const DoctorDashboard: React.FC = () => {
   }
 
   return (
-    <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 space-y-6">
+    <div className="flex-1 max-w-7xl mx-auto w-full px-2.5 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
       
       {/* En-tête Espace Médecin */}
-      <div className="glass-panel rounded-2xl p-6 border-l-4 border-emerald-500 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="glass-panel rounded-2xl p-4 sm:p-6 border-l-4 border-emerald-500 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-950 text-emerald-300 border border-emerald-800 mb-2">
             <Stethoscope className="w-3.5 h-3.5" />
             Médecin Agréé Maritime
           </div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">
+          <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
             {doctorProfile?.full_name || 'Cabinet Médical Maritime'}
           </h2>
           <p className="text-slate-400 text-xs sm:text-sm mt-1">

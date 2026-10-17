@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Candidate, ContractType, MedicalStatus, FinancialStatus, PayerName } from '../../types';
 import { dataService } from '../../lib/supabase';
+import { useAuth } from '../../context/AuthContext';
 import { PassportViewerModal } from './PassportViewerModal';
 import { 
   User, 
@@ -28,8 +29,12 @@ export const CandidateFicheModal: React.FC<CandidateFicheModalProps> = ({
   candidate,
   isOpen,
   onClose,
-  onUpdate
+  onUpdate,
+  userRole: propRole
 }) => {
+  const { role: authRole } = useAuth();
+  const effectiveRole = propRole || authRole;
+
   const [formData, setFormData] = useState<Candidate | null>(null);
   const [passportDataUrl, setPassportDataUrl] = useState<string | null>(null);
   const [isPassportModalOpen, setIsPassportModalOpen] = useState(false);
@@ -83,6 +88,9 @@ export const CandidateFicheModal: React.FC<CandidateFicheModalProps> = ({
 
     setIsSaving(true);
     try {
+      const nowIso = new Date().toISOString();
+      let updates = { ...formData, updated_at: nowIso };
+
       // Si le dossier était archivé
       if (isInitiallyArchived) {
         if (isRenewalOrIntermediate) {
@@ -90,29 +98,29 @@ export const CandidateFicheModal: React.FC<CandidateFicheModalProps> = ({
           // Si le type de contrat est (ou est passé en) « Renouvellement de contrat » ou « Contrat intermédiaire » (Visite intermédiaire),
           // le dossier n'est PAS réarchivé et reste définitivement réactivé dans vos dossiers opérationnels en cours :
           // jusqu'à ce que la date dépasse de nouveau les 30 jours.
-          const nowIso = new Date().toISOString();
-          await dataService.updateCandidate(formData.id, {
-            ...formData,
-            is_archived: false,
-            reactivated_at: nowIso,
-            archived_at: undefined
-          });
+          updates.is_archived = false;
+          updates.reactivated_at = nowIso;
+          updates.archived_at = undefined;
+          await dataService.updateCandidate(formData.id, updates);
           alert(
             `✅ Exception règle métier appliquée !\n\nLe dossier de ${formData.civility} ${formData.last_name} (${formData.contract_type}) est réactivé dans vos dossiers opérationnels en cours.\n\nIl ne sera PAS réarchivé à la fermeture et restera actif jusqu'à ce que sa date dépasse de nouveau les 30 jours.`
           );
         } else {
-          // RÈGLE : à la sortie, il est réarchivé de nouveau (Nouveau contrat > 30 jours)
-          await dataService.rearchiveCandidateOnExit(formData.id);
+          // RÈGLE : à la sortie, il est réarchivé de nouveau (Nouveau contrat > 30 jours) tout en préservant toutes les modifications apportées
+          await dataService.updateCandidate(formData.id, {
+            ...updates,
+            is_archived: true,
+            archived_at: nowIso
+          });
           alert(
             `Consultation terminée pour ${formData.civility} ${formData.last_name}.\n\nCe dossier de plus d'un mois a été réarchivé automatiquement.`
           );
         }
       } else {
         // Dossier opérationnel actif :
-        let updates = { ...formData };
         if (isRenewalOrIntermediate && formData.contract_type !== candidate?.contract_type) {
           // Nouveau cycle de 30 jours déclenché par passage en renouvellement / visite intermédiaire
-          updates.reactivated_at = new Date().toISOString();
+          updates.reactivated_at = nowIso;
           updates.is_archived = false;
           updates.archived_at = undefined;
         }
@@ -137,32 +145,58 @@ export const CandidateFicheModal: React.FC<CandidateFicheModalProps> = ({
     }
   };
 
-  const handleMedicalStatusToggle = () => {
+  // Toggle du statut médical avec enregistrement immédiat en base et Firebase
+  const handleMedicalStatusToggle = async () => {
+    if (!formData) return;
     const nextStatus: MedicalStatus = formData.medical_status === 'En instance' ? 'Effectué' : 'En instance';
-    setFormData(prev => prev ? { ...prev, medical_status: nextStatus } : null);
+    const updated = { ...formData, medical_status: nextStatus, updated_at: new Date().toISOString() };
+    setFormData(updated);
+
+    try {
+      await dataService.updateCandidate(formData.id, {
+        medical_status: nextStatus,
+        updated_at: new Date().toISOString()
+      });
+      onUpdate?.();
+    } catch (e) {
+      console.warn("Erreur mise à jour statut médical immédiat:", e);
+    }
   };
 
-  const handleFinancialStatusToggle = () => {
+  // Toggle du statut financier avec enregistrement immédiat
+  const handleFinancialStatusToggle = async () => {
+    if (!formData) return;
     const nextStatus: FinancialStatus = formData.financial_status === 'Payé' ? 'Non payé' : 'Payé';
-    setFormData(prev => prev ? { ...prev, financial_status: nextStatus } : null);
+    const updated = { ...formData, financial_status: nextStatus, updated_at: new Date().toISOString() };
+    setFormData(updated);
+
+    try {
+      await dataService.updateCandidate(formData.id, {
+        financial_status: nextStatus,
+        updated_at: new Date().toISOString()
+      });
+      onUpdate?.();
+    } catch (e) {
+      console.warn("Erreur mise à jour statut financier immédiat:", e);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fadeIn">
-      <div className="glass-panel w-full max-w-3xl rounded-3xl border border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-fadeIn">
+      <div className="glass-panel w-full max-w-3xl rounded-2xl sm:rounded-3xl border border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[96vh] sm:max-h-[92vh]">
         
         {/* En-tête de la fiche candidat */}
-        <div className="px-6 py-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
-          <div className="flex items-center gap-3">
-            <div className={`p-3 rounded-2xl border ${
+        <div className="px-4 py-3 sm:px-6 sm:py-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className={`p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border shrink-0 ${
               isInitiallyArchived 
                 ? 'bg-amber-950/70 border-amber-800/80 text-amber-400' 
                 : 'bg-cyan-950/70 border-cyan-800/80 text-cyan-400'
             }`}>
-              {isInitiallyArchived ? <Archive className="w-5 h-5" /> : <User className="w-5 h-5" />}
+              {isInitiallyArchived ? <Archive className="w-4 h-4 sm:w-5 sm:h-5" /> : <User className="w-4 h-4 sm:w-5 sm:h-5" />}
             </div>
-            <div>
-              <div className="flex items-center gap-2">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-mono text-xs text-cyan-400 font-bold">
                   {formData.passport_number}
                 </span>
@@ -172,7 +206,7 @@ export const CandidateFicheModal: React.FC<CandidateFicheModalProps> = ({
                   </span>
                 )}
               </div>
-              <h3 className="text-xl font-bold text-white tracking-tight">
+              <h3 className="text-base sm:text-xl font-bold text-white tracking-tight truncate">
                 {formData.civility} {formData.last_name} {formData.first_name}
               </h3>
             </div>
@@ -189,7 +223,7 @@ export const CandidateFicheModal: React.FC<CandidateFicheModalProps> = ({
         </div>
 
         {/* Corps déroulant */}
-        <div className="p-6 space-y-6 overflow-y-auto flex-1 text-xs">
+        <div className="p-3.5 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto flex-1 text-xs">
           
           {/* BANNIÈRE D'ARCHIVAGE DÉTAILLÉE */}
           {isInitiallyArchived && (
@@ -379,6 +413,37 @@ export const CandidateFicheModal: React.FC<CandidateFicheModalProps> = ({
                   className="w-full p-2 rounded-xl bg-slate-900 border border-slate-800 text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 />
               </div>
+
+              {/* Bouton d'action directe pour valider la visite médicale */}
+              {effectiveRole === 'medecin' && (
+                <div className="pt-1">
+                  {formData.medical_status === 'En instance' ? (
+                    <button
+                      type="button"
+                      onClick={handleMedicalStatusToggle}
+                      className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                      title="Enregistrer immédiatement la visite médicale comme effectuée et notifier la société"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Valider la visite médicale (Marquer Effectué)</span>
+                    </button>
+                  ) : (
+                    <div className="p-2.5 rounded-xl bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 text-xs font-semibold flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>Visite médicale validée & effectuée</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleMedicalStatusToggle}
+                        className="text-[10px] text-slate-400 hover:text-amber-300 underline cursor-pointer shrink-0"
+                      >
+                        Remettre en instance
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Gestion Financière (Dinars Tunisiens - DT) */}
@@ -436,23 +501,23 @@ export const CandidateFicheModal: React.FC<CandidateFicheModalProps> = ({
         </div>
 
         {/* Pied de modal avec bouton de fermeture et application de la règle d'archivage */}
-        <div className="px-6 py-4 border-t border-slate-800 flex items-center justify-between bg-slate-900/40">
+        <div className="px-4 py-3 sm:px-6 sm:py-4 border-t border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900/40">
           <div className="text-[11px] text-slate-400">
             {isInitiallyArchived ? (
               isRenewalOrIntermediate ? (
                 <span className="text-emerald-400 font-semibold flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4" />
-                  À la sortie : Réactivé dans les dossiers opérationnels (cycle 30 jours)
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>À la sortie : Réactivé dans les dossiers opérationnels (cycle 30 jours)</span>
                 </span>
               ) : (
                 <span className="text-amber-400 font-semibold flex items-center gap-1.5">
-                  <Archive className="w-4 h-4" />
-                  À la sortie : Réarchivé automatiquement (Nouveau contrat &gt; 30j)
+                  <Archive className="w-4 h-4 shrink-0" />
+                  <span>À la sortie : Réarchivé automatiquement (Nouveau contrat &gt; 30j)</span>
                 </span>
               )
             ) : (
               <span className="text-slate-300 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
                 <span>Dossier opérationnel actif {isRenewalOrIntermediate ? `(Cycle 30j : ${remainingDays}j restants)` : ''}</span>
               </span>
             )}
@@ -462,7 +527,7 @@ export const CandidateFicheModal: React.FC<CandidateFicheModalProps> = ({
             type="button"
             onClick={handleExitFiche}
             disabled={isSaving}
-            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-maritime-600 hover:from-cyan-500 hover:to-maritime-500 text-white font-bold text-xs shadow-lg transition-all flex items-center gap-2"
+            className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-maritime-600 hover:from-cyan-500 hover:to-maritime-500 text-white font-bold text-xs shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
             <span>Fermer & Enregistrer</span>
           </button>

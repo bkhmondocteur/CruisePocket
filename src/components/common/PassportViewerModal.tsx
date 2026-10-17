@@ -49,36 +49,36 @@ export const PassportViewerModal: React.FC<PassportViewerModalProps> = ({
   const isPdf = fileName?.toLowerCase().endsWith('.pdf') || activeUrl?.startsWith('data:application/pdf');
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
-      <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+      <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[96vh] sm:max-h-[90vh]">
         
         {/* Header Modal */}
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/70">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-cyan-950 text-cyan-400 border border-cyan-800 flex items-center justify-center">
-              <FileText className="w-5 h-5" />
+        <div className="p-3 sm:p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/70">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-cyan-950 text-cyan-400 border border-cyan-800 flex items-center justify-center shrink-0">
+              <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+            <div className="min-w-0">
+              <h3 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5 sm:gap-2 flex-wrap">
                 <span>Copie du Passeport</span>
                 {passportNumber && (
-                  <span className="font-mono text-cyan-400 text-xs px-2 py-0.5 rounded bg-slate-800 border border-slate-700">
+                  <span className="font-mono text-cyan-400 text-[10px] sm:text-xs px-1.5 py-0.2 rounded bg-slate-800 border border-slate-700">
                     N° {passportNumber}
                   </span>
                 )}
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-[11px] text-slate-400 truncate">
                 {candidateName ? `Marin : ${candidateName}` : fileName || 'Document justificatif'}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {activeUrl && (
               <a
                 href={activeUrl}
                 download={fileName || 'passeport.pdf'}
-                className="p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
+                className="p-1.5 sm:p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
                 title="Télécharger la pièce jointe"
               >
                 <Download className="w-4 h-4" />
@@ -86,7 +86,7 @@ export const PassportViewerModal: React.FC<PassportViewerModalProps> = ({
             )}
             <button
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-rose-400 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
+              className="p-1.5 sm:p-2 text-slate-400 hover:text-rose-400 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -94,7 +94,7 @@ export const PassportViewerModal: React.FC<PassportViewerModalProps> = ({
         </div>
 
         {/* Corps Visualiseur */}
-        <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center bg-slate-950/50 min-h-[340px]">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-6 flex flex-col items-center justify-center bg-slate-950/50 min-h-[300px]">
           {loadingDoc ? (
             <div className="flex flex-col items-center gap-3 text-slate-400">
               <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />

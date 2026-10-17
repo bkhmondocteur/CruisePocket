@@ -119,35 +119,35 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
-      <div className="glass-panel w-full max-w-2xl rounded-3xl border border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+      <div className="glass-panel w-full max-w-2xl rounded-2xl sm:rounded-3xl border border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[96vh] sm:max-h-[90vh]">
         
         {/* En-tête */}
-        <div className="px-6 py-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/40">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-cyan-950/70 text-cyan-400 border border-cyan-800/60">
-              <Database className="w-5 h-5" />
+        <div className="px-4 py-3.5 sm:px-6 sm:py-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/40">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-cyan-950/70 text-cyan-400 border border-cyan-800/60 shrink-0">
+              <Database className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <span>Gestion des Sauvegardes & Restauration</span>
+            <div className="min-w-0">
+              <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2 truncate">
+                <span>Gestion des Sauvegardes</span>
               </h3>
-              <p className="text-xs text-slate-400">
-                Sauvegarde automatique rotative (5 fichiers) & Restauration sécurisée
+              <p className="text-[11px] sm:text-xs text-slate-400 truncate">
+                5 fichiers rotatifs & Restauration sécurisée
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors"
+            className="p-1.5 sm:p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Corps */}
-        <div className="p-6 space-y-6 overflow-y-auto flex-1">
+        <div className="p-3.5 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto flex-1">
           
           {/* Notifications */}
           {statusMessage && (

@@ -163,22 +163,22 @@ export const HomePortal: React.FC = () => {
             />
           </div>
           
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-3">
+          <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white mb-3">
             Bienvenue sur <span className="text-transparent bg-clip-text bg-gradient-to-r from-maritime-400 via-cyan-300 to-emerald-400">CruisePocket</span>
           </h2>
           
-          <p className="text-slate-400 text-sm sm:text-base leading-relaxed max-w-lg">
+          <p className="text-slate-400 text-xs sm:text-base leading-relaxed max-w-lg">
             Application métier dédiée à la gestion médicale et administrative des marins de croisière et gens de mer.
           </p>
         </div>
 
         {/* 2 Choix Principaux : Médecin / Société de Service */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 w-full max-w-3xl">
           
           {/* CARTE MÉDECIN */}
           <div
             onClick={() => handleSelectRole('medecin')}
-            className="group relative cursor-pointer rounded-3xl glass-card-interactive p-6 sm:p-8 flex flex-col justify-between border-2 border-transparent hover:border-emerald-500/40 shadow-xl overflow-hidden"
+            className="group relative cursor-pointer rounded-2xl sm:rounded-3xl glass-card-interactive p-5 sm:p-8 flex flex-col justify-between border-2 border-transparent hover:border-emerald-500/40 shadow-xl overflow-hidden"
           >
             <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all pointer-events-none"></div>
 
@@ -211,7 +211,7 @@ export const HomePortal: React.FC = () => {
           {/* CARTE SOCIÉTÉ DE SERVICE */}
           <div
             onClick={() => handleSelectRole('societe')}
-            className="group relative cursor-pointer rounded-3xl glass-card-interactive p-6 sm:p-8 flex flex-col justify-between border-2 border-transparent hover:border-maritime-500/40 shadow-xl overflow-hidden"
+            className="group relative cursor-pointer rounded-2xl sm:rounded-3xl glass-card-interactive p-5 sm:p-8 flex flex-col justify-between border-2 border-transparent hover:border-maritime-500/40 shadow-xl overflow-hidden"
           >
             <div className="absolute top-0 right-0 w-32 h-32 bg-maritime-500/10 rounded-full blur-2xl group-hover:bg-maritime-500/20 transition-all pointer-events-none"></div>
 
@@ -313,7 +313,7 @@ export const HomePortal: React.FC = () => {
       )}
 
       {/* Boîte Principale de Connexion */}
-      <div className="w-full glass-panel rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-2xl relative space-y-6">
+      <div className="w-full glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-8 border border-slate-800 shadow-2xl relative space-y-6">
         
         {/* Logo & Titre */}
         <div className="text-center pb-4 border-b border-slate-800">

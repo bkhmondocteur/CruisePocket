@@ -335,16 +335,16 @@ export const CompanyDashboard: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 space-y-8">
+    <div className="flex-1 max-w-7xl mx-auto w-full px-2.5 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-8">
       
       {/* Bannière d'accueil Espace Société */}
-      <div className="glass-panel rounded-2xl p-6 border-l-4 border-maritime-500 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="glass-panel rounded-2xl p-4 sm:p-6 border-l-4 border-maritime-500 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-maritime-950 text-maritime-300 border border-maritime-800 mb-2">
             <Building2 className="w-3.5 h-3.5" />
             Fournisseur Agréé Maritime
           </div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">
+          <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
             Espace Société : {companyProfile?.name || 'Gestion Crewing'}
           </h2>
           <p className="text-slate-400 text-xs sm:text-sm mt-1">
@@ -353,9 +353,9 @@ export const CompanyDashboard: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="bg-slate-900/90 border border-slate-800 px-4 py-2 rounded-xl text-center">
-            <div className="text-xs text-slate-400">Dossiers transmis</div>
-            <div className="text-xl font-bold text-cyan-400">{recentTransfers.length}</div>
+          <div className="bg-slate-900/90 border border-slate-800 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-center">
+            <div className="text-[11px] sm:text-xs text-slate-400">Dossiers transmis</div>
+            <div className="text-lg sm:text-xl font-bold text-cyan-400">{recentTransfers.length}</div>
           </div>
         </div>
       </div>
@@ -430,7 +430,7 @@ export const CompanyDashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
         {/* COLONNE GAUCHE (7 cols) : FORMULAIRE CANDIDAT */}
-        <div className="lg:col-span-7 glass-panel rounded-2xl p-6 sm:p-7 border border-slate-800 shadow-xl">
+        <div className="lg:col-span-7 glass-panel rounded-2xl p-4 sm:p-7 border border-slate-800 shadow-xl">
           
           <div className="flex items-center justify-between pb-4 mb-6 border-b border-slate-800">
             <div>
@@ -771,7 +771,7 @@ export const CompanyDashboard: React.FC = () => {
 
         {/* COLONNE DROITE (5 cols) : SUIVI DES ENVOIS EN TEMPS RÉEL */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="glass-panel rounded-2xl p-6 border border-slate-800 shadow-xl">
+          <div className="glass-panel rounded-2xl p-4 sm:p-6 border border-slate-800 shadow-xl">
             
             {/* En-tête avec onglets Actifs vs Archivés (> 1 mois) */}
             <div className="flex flex-col gap-3 pb-3 mb-4 border-b border-slate-800">
