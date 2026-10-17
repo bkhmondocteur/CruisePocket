@@ -167,6 +167,58 @@ function getDefaultRegistry() {
   };
 }
 
+export const REVOKED_LICENSES_KEY = 'cruisepocket_revoked_licenses';
+
+/**
+ * Vérifier si une clé de licence a été révoquée par l'administrateur
+ */
+export function isLicenseRevoked(key: string): boolean {
+  try {
+    const raw = localStorage.getItem(REVOKED_LICENSES_KEY);
+    if (!raw) return false;
+    const list = JSON.parse(raw);
+    if (Array.isArray(list)) {
+      return list.includes(key.trim().toUpperCase());
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Révoquer une clé de licence
+ */
+export function revokeLicense(key: string): void {
+  try {
+    const trimmed = key.trim().toUpperCase();
+    const raw = localStorage.getItem(REVOKED_LICENSES_KEY);
+    const list: string[] = raw ? JSON.parse(raw) : [];
+    if (!list.includes(trimmed)) {
+      list.push(trimmed);
+      localStorage.setItem(REVOKED_LICENSES_KEY, JSON.stringify(list));
+    }
+  } catch (e) {
+    console.error('Erreur révocation licence:', e);
+  }
+}
+
+/**
+ * Rétablir / annuler la révocation d'une licence
+ */
+export function unrevokeLicense(key: string): void {
+  try {
+    const trimmed = key.trim().toUpperCase();
+    const raw = localStorage.getItem(REVOKED_LICENSES_KEY);
+    if (!raw) return;
+    const list: string[] = JSON.parse(raw);
+    const updated = list.filter(k => k !== trimmed);
+    localStorage.setItem(REVOKED_LICENSES_KEY, JSON.stringify(updated));
+  } catch (e) {
+    console.error('Erreur rétablissement licence:', e);
+  }
+}
+
 /**
  * Valider une clé de licence et identifier son rôle
  */
@@ -194,6 +246,15 @@ export function validateLicense(key: string, expectedRole?: Role): {
   }
 
   const detectedRole: Role = isDoctor ? 'medecin' : 'societe';
+
+  // Contrôle de révocation administrative
+  if (isLicenseRevoked(trimmed)) {
+    return {
+      isValid: false,
+      role: detectedRole,
+      error: 'Cette clé de licence a été RÉVOQUÉE par l\'administrateur. L\'accès à CruisePocket est désactivé.'
+    };
+  }
 
   if (expectedRole && detectedRole !== expectedRole) {
     return {
