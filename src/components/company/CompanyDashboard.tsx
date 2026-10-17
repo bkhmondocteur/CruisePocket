@@ -22,7 +22,8 @@ import {
   Archive,
   ArchiveRestore,
   X,
-  Stethoscope
+  Stethoscope,
+  RotateCw
 } from 'lucide-react';
 import { CandidateFicheModal } from '../common/CandidateFicheModal';
 
@@ -723,6 +724,17 @@ export const CompanyDashboard: React.FC = () => {
                 <span className="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full font-mono">
                   {recentTransfers.length} total
                 </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    loadTransfers();
+                    loadCruiseCompanies();
+                  }}
+                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all cursor-pointer group"
+                  title="Actualiser instantanément les dossiers transmis"
+                >
+                  <RotateCw className="w-3.5 h-3.5 text-cyan-400 group-hover:rotate-180 transition-transform" />
+                </button>
               </div>
 
               {/* Onglets Actifs / Archivés */}

@@ -10,7 +10,8 @@ import {
   ShieldCheck,
   Database,
   ArrowLeftRight,
-  ExternalLink
+  ExternalLink,
+  RotateCw
 } from 'lucide-react';
 import { BackupModal } from './BackupModal';
 import { getLicenseRegistry, isLicenseRevoked, FICTIVE_LICENSE_KEYS, FICTIVE_NAMES } from '../../utils/license';
@@ -78,6 +79,42 @@ export const Header: React.FC = () => {
     }
   };
 
+  // État d'actualisation / vidage de cache
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefreshAndClearCache = async () => {
+    setIsRefreshing(true);
+    try {
+      // 1. Vider tous les caches PWA (CacheStorage)
+      if (typeof window !== 'undefined' && 'caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map((name) => caches.delete(name)));
+      }
+
+      // 2. Désenregistrer le Service Worker pour forcer le rechargement immédiat
+      if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map((reg) => reg.unregister()));
+      }
+
+      // 3. Purger les clés temporaires sans toucher aux licences ni aux candidats
+      if (typeof localStorage !== 'undefined') {
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const key = localStorage.key(i);
+          if (key && (key.startsWith('cruisepocket_tmp') || key.startsWith('backup_temp_') || key.startsWith('vite-'))) {
+            localStorage.removeItem(key);
+          }
+        }
+      }
+
+      // 4. Recharger la page depuis le réseau
+      window.location.reload();
+    } catch (e) {
+      console.warn("Erreur lors de l'actualisation:", e);
+      window.location.reload();
+    }
+  };
+
   return (
     <header className="sticky top-0 z-40 w-full glass-panel border-b border-slate-800/80 px-4 py-3 sm:px-6">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -128,6 +165,17 @@ export const Header: React.FC = () => {
           >
             <Database className="w-3.5 h-3.5 text-cyan-400" />
             <span className="hidden sm:inline">Sauvegardes</span>
+          </button>
+
+          {/* Bouton Actualiser & Vider le Cache */}
+          <button
+            onClick={handleRefreshAndClearCache}
+            disabled={isRefreshing}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-amber-500/50 text-slate-300 hover:text-white shadow-sm transition-all cursor-pointer group"
+            title="Effacer le cache du navigateur / PWA et recharger l'application"
+          >
+            <RotateCw className={`w-3.5 h-3.5 text-amber-400 group-hover:rotate-180 transition-transform ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">{isRefreshing ? 'Actualisation...' : 'Actualiser'}</span>
           </button>
 
           {/* Bouton Installer PWA */}

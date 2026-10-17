@@ -20,7 +20,8 @@ import {
   Bell,
   Archive,
   ArchiveRestore,
-  X
+  X,
+  RotateCw
 } from 'lucide-react';
 import { CandidateFicheModal } from '../common/CandidateFicheModal';
 
@@ -341,15 +342,29 @@ export const DoctorDashboard: React.FC = () => {
             </button>
           )}
 
-          <div className="relative w-full sm:w-64">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Rechercher marin, passeport, médecin..."
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-            <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5" />
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="relative w-full sm:w-64">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Rechercher marin, passeport, médecin..."
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5" />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setLoading(true);
+                fetchCandidates();
+              }}
+              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500/50 text-slate-400 hover:text-white transition-all cursor-pointer group shrink-0"
+              title="Actualiser instantanément la liste des dossiers médicaux"
+            >
+              <RotateCw className="w-3.5 h-3.5 text-emerald-400 group-hover:rotate-180 transition-transform" />
+            </button>
           </div>
         </div>
 
