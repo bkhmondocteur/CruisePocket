@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { Role } from '../../types';
 import { useAuth } from '../../context/AuthContext';
-import { getLicenseRegistry } from '../../utils/license';
+import { getLicenseRegistry, isLicenseRevoked } from '../../utils/license';
 import { 
   Stethoscope, 
   Building2, 
   KeyRound, 
-  Sparkles, 
   ArrowRight, 
   ChevronLeft, 
   ShieldCheck, 
@@ -43,25 +42,11 @@ export const HomePortal: React.FC = () => {
     }
   };
 
-  // Raccourci Démo
-  const handleUseDemoLicense = () => {
-    if (!targetRole) return;
-    const registry = getLicenseRegistry();
-    let demoKey = '';
-
-    if (targetRole === 'medecin') {
-      const firstDoc = Object.values(registry.doctors)[0];
-      if (firstDoc) demoKey = firstDoc.license_key;
-    } else {
-      const firstComp = Object.values(registry.companies)[0];
-      if (firstComp) demoKey = firstComp.license_key;
-    }
-
-    if (demoKey) {
-      setInputLicense(demoKey);
-      loginWithLicense(demoKey, targetRole);
-    }
-  };
+  // Comptes formellement enregistrés et actifs pour le profil ciblé
+  const registry = getLicenseRegistry();
+  const registeredAccounts = targetRole === 'medecin'
+    ? Object.values(registry.doctors).filter(d => !isLicenseRevoked(d.license_key))
+    : Object.values(registry.companies).filter(c => !isLicenseRevoked(c.license_key));
 
   // ============================================================================
   // VUE 1 : ÉCRAN INITIAL DE SÉLECTION DU PROFIL
@@ -223,7 +208,7 @@ export const HomePortal: React.FC = () => {
                   setInputLicense(e.target.value.toUpperCase());
                   setLoginError(null);
                 }}
-                placeholder={isMed ? 'CP-MED-13987-A1B2C3-4E8F' : 'CP-SOC-MARS-D4E5F6-7A9B'}
+                placeholder={isMed ? 'CP-MED-XXXXX-XXXXXX-XXXX' : 'CP-SOC-XXXX-XXXXXX-XXXX'}
                 className="w-full bg-slate-950/90 border border-slate-700 rounded-xl px-4 py-3 text-sm font-mono tracking-wider text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 uppercase"
                 required
                 autoFocus
@@ -254,16 +239,44 @@ export const HomePortal: React.FC = () => {
             <ArrowRight className="w-4 h-4" />
           </button>
 
-          {/* Raccourci Démo */}
-          <div className="pt-4 border-t border-slate-800/80 flex flex-col items-center gap-3">
-            <button
-              type="button"
-              onClick={handleUseDemoLicense}
-              className="text-xs text-slate-400 hover:text-cyan-400 font-medium transition-colors flex items-center gap-1.5"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>Tester instantanément avec une clé démo</span>
-            </button>
+          {/* Section Comptes Enregistrés */}
+          <div className="pt-4 border-t border-slate-800/80">
+            {registeredAccounts.length > 0 ? (
+              <div className="space-y-2">
+                <label className="text-[11px] font-semibold text-slate-400 block">
+                  Comptes {isMed ? 'médecins' : 'sociétés'} enregistrés ({registeredAccounts.length}) :
+                </label>
+                <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto pr-1">
+                  {registeredAccounts.map((acc: any) => (
+                    <button
+                      key={acc.license_key}
+                      type="button"
+                      onClick={() => {
+                        setInputLicense(acc.license_key);
+                        loginWithLicense(acc.license_key, targetRole);
+                      }}
+                      className="w-full text-left p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-xs text-slate-200 flex items-center justify-between transition-colors group cursor-pointer"
+                    >
+                      <div className="truncate pr-2">
+                        <div className="font-semibold text-white truncate">
+                          {'full_name' in acc ? acc.full_name : acc.name}
+                        </div>
+                        <div className="text-[10px] text-slate-400 truncate">
+                          {'practice_location' in acc ? acc.practice_location : acc.location}
+                        </div>
+                      </div>
+                      <span className="shrink-0 font-mono text-[10px] text-cyan-400 bg-cyan-950/60 px-2 py-1 rounded border border-cyan-800 group-hover:border-cyan-500">
+                        Connexion &rarr;
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="text-[11px] text-amber-400/90 bg-amber-950/30 p-2.5 rounded-xl border border-amber-900/40 leading-relaxed text-center">
+                Aucun compte {isMed ? 'médecin' : 'société'} enregistré dans le système. Veuillez générer et enregistrer une licence via le Keygen CruisePocket.
+              </p>
+            )}
           </div>
 
         </form>

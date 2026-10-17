@@ -458,7 +458,7 @@ export const DoctorDashboard: React.FC = () => {
                   <div className="text-[11px] pt-1.5 border-t border-slate-900/80 flex items-center justify-between">
                     <span className="flex items-center gap-1 text-slate-300">
                       <Stethoscope className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      <span>Destinataire : <strong className="text-emerald-300">{cand.doctor_name || 'Dr. Jean-Marc FERRARI'}</strong></span>
+                      <span>Destinataire : <strong className="text-emerald-300">{cand.doctor_name || 'Non assigné'}</strong></span>
                     </span>
                     {doctorProfile?.full_name && (cand.doctor_name === doctorProfile.full_name || cand.doctor_id === doctorProfile.id) && (
                       <span className="text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800 px-1.5 py-0.5 rounded">

@@ -102,69 +102,117 @@ export function generateDoctorLicense(input: LicenseGenerationDoctorInput): {
   return { licenseKey, doctor };
 }
 
+export const FICTIVE_LICENSE_KEYS = [
+  'CP-MED-13987-A1B2C3-4E8F',
+  'CP-MED-24552-D8E9F1-3A4B',
+  'CP-MED-75104-C4B2A1-9F8E',
+  'CP-SOC-MARS-D4E5F6-7A9B',
+  'med-demo-1',
+  'soc-demo-1'
+];
+
+export const FICTIVE_NAMES = [
+  'Dr. Jean-Marc FERRARI',
+  'Dr. Leila BEN SALAH',
+  'Dr. Philippe TARDIEU',
+  'TransMed Crewing Services',
+  'Azur Crewing Agency'
+];
+
 /**
  * Sauvegarder les licences créées dans le registre local pour persistance
  */
 const REGISTRY_STORAGE_KEY = 'cruisepocket_license_registry';
+export const STORAGE_KEY_LICENSES = 'cruisepocket_registered_licenses';
 
 export function getLicenseRegistry(): {
   doctors: Record<string, Doctor>;
   companies: Record<string, ServiceCompany>;
 } {
+  const doctors: Record<string, Doctor> = {};
+  const companies: Record<string, ServiceCompany> = {};
+
+  // 1. Lire le registre local interne (cruisepocket_license_registry)
   try {
     const raw = localStorage.getItem(REGISTRY_STORAGE_KEY);
-    if (!raw) return getDefaultRegistry();
-    return JSON.parse(raw);
-  } catch {
-    return getDefaultRegistry();
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed.doctors) {
+        Object.entries(parsed.doctors).forEach(([k, doc]: [string, any]) => {
+          const keyUpper = k.toUpperCase();
+          if (!FICTIVE_LICENSE_KEYS.includes(keyUpper) && !FICTIVE_NAMES.includes(doc?.full_name)) {
+            doctors[keyUpper] = doc;
+          }
+        });
+      }
+      if (parsed.companies) {
+        Object.entries(parsed.companies).forEach(([k, comp]: [string, any]) => {
+          const keyUpper = k.toUpperCase();
+          if (!FICTIVE_LICENSE_KEYS.includes(keyUpper) && !FICTIVE_NAMES.includes(comp?.name)) {
+            companies[keyUpper] = comp;
+          }
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('Erreur lecture REGISTRY_STORAGE_KEY:', e);
   }
+
+  // 2. Synchroniser avec le registre officiel du Keygen (cruisepocket_registered_licenses)
+  try {
+    const rawLicenses = localStorage.getItem(STORAGE_KEY_LICENSES);
+    if (rawLicenses) {
+      const list = JSON.parse(rawLicenses);
+      if (Array.isArray(list)) {
+        list.forEach((item: any) => {
+          const keyUpper = item.key?.trim().toUpperCase();
+          if (!keyUpper || FICTIVE_LICENSE_KEYS.includes(keyUpper) || FICTIVE_NAMES.includes(item.holderName)) {
+            return;
+          }
+
+          if (item.role === 'medecin') {
+            doctors[keyUpper] = {
+              id: `med-${keyUpper.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
+              full_name: item.holderName,
+              order_number: item.detail1?.replace(/^Ordre:\s*/i, '').replace(/[^0-9/]/g, '') || item.detail1 || 'Certifié',
+              practice_location: item.location || 'Cabinet Médical Maritime',
+              license_key: item.key,
+              created_at: item.createdAt || new Date().toISOString()
+            };
+          } else if (item.role === 'societe') {
+            companies[keyUpper] = {
+              id: `soc-${keyUpper.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
+              name: item.holderName,
+              manager_name: item.detail1?.replace(/^Resp:\s*/i, '') || 'Responsable',
+              phone: item.detail2?.replace(/^Tél:\s*/i, '') || '',
+              location: item.location || 'Port Maritime',
+              license_key: item.key,
+              created_at: item.createdAt || new Date().toISOString()
+            };
+          }
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('Erreur lecture STORAGE_KEY_LICENSES:', e);
+  }
+
+  return { doctors, companies };
 }
 
 function saveRegisteredLicense(role: Role, key: string, data: Doctor | ServiceCompany) {
   const registry = getLicenseRegistry();
+  const keyUpper = key.trim().toUpperCase();
   if (role === 'medecin') {
-    registry.doctors[key] = data as Doctor;
+    registry.doctors[keyUpper] = data as Doctor;
   } else {
-    registry.companies[key] = data as ServiceCompany;
+    registry.companies[keyUpper] = data as ServiceCompany;
   }
   try {
     localStorage.setItem(REGISTRY_STORAGE_KEY, JSON.stringify(registry));
   } catch (e) {
     console.error('Erreur sauvegarde registre:', e);
   }
-}
-
-/**
- * Licences de démonstration préenregistrées pour test instantané
- */
-function getDefaultRegistry() {
-  const demoDoctor: Doctor = {
-    id: 'med-demo-1',
-    full_name: 'Dr. Jean-Marc FERRARI',
-    order_number: '13/98745',
-    practice_location: 'Centre Médical Maritime - Marseille',
-    license_key: 'CP-MED-13987-A1B2C3-4E8F',
-    created_at: new Date().toISOString()
-  };
-
-  const demoCompany: ServiceCompany = {
-    id: 'soc-demo-1',
-    name: 'TransMed Crewing Services',
-    manager_name: 'Claire Beauchamp',
-    phone: '+33 4 91 10 20 30',
-    location: 'Marseille Port Autonome',
-    license_key: 'CP-SOC-MARS-D4E5F6-7A9B',
-    created_at: new Date().toISOString()
-  };
-
-  return {
-    doctors: {
-      [demoDoctor.license_key]: demoDoctor
-    },
-    companies: {
-      [demoCompany.license_key]: demoCompany
-    }
-  };
 }
 
 export const REVOKED_LICENSES_KEY = 'cruisepocket_revoked_licenses';
@@ -247,6 +295,15 @@ export function validateLicense(key: string, expectedRole?: Role): {
 
   const detectedRole: Role = isDoctor ? 'medecin' : 'societe';
 
+  // Contrôle de licence fictive révoquée / supprimée
+  if (FICTIVE_LICENSE_KEYS.includes(trimmed)) {
+    return {
+      isValid: false,
+      role: detectedRole,
+      error: 'Cette licence fictive de démonstration a été supprimée. Veuillez utiliser votre licence officielle enregistrée.'
+    };
+  }
+
   // Contrôle de révocation administrative
   if (isLicenseRevoked(trimmed)) {
     return {
@@ -278,28 +335,27 @@ export function validateLicense(key: string, expectedRole?: Role): {
     ? registry.doctors[trimmed] 
     : registry.companies[trimmed];
 
-  // Si non trouvée dans le registre, on construit un profil dynamique valide
-  const resolvedProfile = profile || (detectedRole === 'medecin' 
-    ? {
-        id: `med-${parts[2]}`,
-        full_name: `Médecin Autorisé (${parts[1]})`,
-        order_number: parts[1],
-        practice_location: 'Cabinet Médical Maritime',
-        license_key: trimmed
-      } as Doctor
-    : {
-        id: `soc-${parts[2]}`,
-        name: `Société Partenaire (${parts[1]})`,
-        manager_name: 'Responsable Opérations',
-        phone: 'Non renseigné',
-        location: parts[1],
-        license_key: trimmed
-      } as ServiceCompany
-  );
+  // Règle formelle : Ne garder que les licences et profils déjà enregistrés
+  if (!profile) {
+    return {
+      isValid: false,
+      role: detectedRole,
+      error: `Cette clé n'est pas encore enregistrée. Veuillez générer et enregistrer votre licence dans le Keygen CruisePocket.`
+    };
+  }
+
+  const profileName = detectedRole === 'medecin' ? (profile as Doctor).full_name : (profile as ServiceCompany).name;
+  if (FICTIVE_NAMES.includes(profileName)) {
+    return {
+      isValid: false,
+      role: detectedRole,
+      error: 'Ce compte fictif a été supprimé. Veuillez utiliser un compte officiel enregistré.'
+    };
+  }
 
   return {
     isValid: true,
     role: detectedRole,
-    profile: resolvedProfile
+    profile
   };
 }

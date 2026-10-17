@@ -255,7 +255,7 @@ export const CandidateFicheModal: React.FC<CandidateFicheModalProps> = ({
                 <span>•</span>
                 <span className="flex items-center gap-1 text-emerald-400">
                   <Stethoscope className="w-3.5 h-3.5" />
-                  <span>Médecin destinataire : <strong className="text-white">{formData.doctor_name || 'Dr. Jean-Marc FERRARI'}</strong></span>
+                  <span>Médecin destinataire : <strong className="text-white">{formData.doctor_name || 'Non assigné'}</strong></span>
                 </span>
               </div>
             </div>

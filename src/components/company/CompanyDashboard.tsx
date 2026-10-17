@@ -515,7 +515,7 @@ export const CompanyDashboard: React.FC = () => {
                     setShowSuggestions(true);
                   }
                 }}
-                placeholder="ex: MSC Croisières, Ponant, Royal Caribbean..."
+                placeholder="Nom de la compagnie maritime..."
                 required
                 className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-maritime-500"
               />
@@ -599,29 +599,39 @@ export const CompanyDashboard: React.FC = () => {
                 </span>
               </div>
 
-              <select
-                value={selectedDoctorId}
-                onChange={(e) => setSelectedDoctorId(e.target.value)}
-                required
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
-              >
-                {availableDoctors.map((doc) => (
-                  <option key={doc.id} value={doc.id}>
-                    {doc.full_name} — {doc.practice_location} (Ordre: {doc.order_number})
-                  </option>
-                ))}
-              </select>
-
-              {availableDoctors.find(d => d.id === selectedDoctorId) && (
-                <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1">
-                  <span className="flex items-center gap-1 text-emerald-300">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    Cabinet : <strong>{availableDoctors.find(d => d.id === selectedDoctorId)?.practice_location}</strong>
-                  </span>
-                  <span className="font-mono text-[10px] text-slate-500">
-                    N° Ordre : {availableDoctors.find(d => d.id === selectedDoctorId)?.order_number}
-                  </span>
+              {availableDoctors.length === 0 ? (
+                <div className="p-3 bg-amber-950/40 border border-amber-800 rounded-xl text-amber-300 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
+                  <span>Aucun médecin agréé n'est enregistré pour le moment. Veuillez d'abord enregistrer un médecin dans le Keygen CruisePocket.</span>
                 </div>
+              ) : (
+                <>
+                  <select
+                    value={selectedDoctorId}
+                    onChange={(e) => setSelectedDoctorId(e.target.value)}
+                    required
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                  >
+                    <option value="">-- Sélectionnez le médecin destinataire --</option>
+                    {availableDoctors.map((doc) => (
+                      <option key={doc.id} value={doc.id}>
+                        {doc.full_name} — {doc.practice_location} (Ordre: {doc.order_number})
+                      </option>
+                    ))}
+                  </select>
+
+                  {availableDoctors.find(d => d.id === selectedDoctorId) && (
+                    <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1">
+                      <span className="flex items-center gap-1 text-emerald-300">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        Cabinet : <strong>{availableDoctors.find(d => d.id === selectedDoctorId)?.practice_location}</strong>
+                      </span>
+                      <span className="font-mono text-[10px] text-slate-500">
+                        N° Ordre : {availableDoctors.find(d => d.id === selectedDoctorId)?.order_number}
+                      </span>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
@@ -765,7 +775,7 @@ export const CompanyDashboard: React.FC = () => {
                     {/* Médecin Destinataire */}
                     <div className="pt-1.5 border-t border-slate-900/80 flex items-center gap-1.5 text-[11px] text-slate-400">
                       <Stethoscope className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      <span>Destinataire : <strong className="text-emerald-300">{cand.doctor_name || 'Dr. Jean-Marc FERRARI'}</strong></span>
+                      <span>Destinataire : <strong className="text-emerald-300">{cand.doctor_name || 'Non assigné'}</strong></span>
                     </div>
 
                     {/* Actions : Supprimer dossier + Fiche Candidat + Consulter passeport */}

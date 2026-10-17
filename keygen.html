@@ -155,7 +155,7 @@
             <input
               type="text"
               id="doc-name"
-              placeholder="Ex: Dr. Jean-Marc FERRARI"
+              placeholder="Ex: Dr. Nom Prénom"
               class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
@@ -208,7 +208,7 @@
             <input
               type="text"
               id="soc-name"
-              placeholder="Ex: TransMed Crewing Services"
+              placeholder="Ex: Agence Maritime de Crewing"
               class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
             />
           </div>
@@ -218,7 +218,7 @@
             <input
               type="text"
               id="soc-manager"
-              placeholder="Ex: Claire Beauchamp"
+              placeholder="Ex: Nom du Responsable"
               class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
             />
           </div>
@@ -421,28 +421,22 @@
     const STORAGE_KEY_LICENSES = 'cruisepocket_registered_licenses';
     const STORAGE_KEY_REVOKED = 'cruisepocket_revoked_licenses';
 
-    // Données par défaut initiales
-    const DEFAULT_LICENSES = [
-      {
-        key: 'CP-MED-13987-A1B2C3-4E8F',
-        role: 'medecin',
-        holderName: 'Dr. Jean-Marc FERRARI',
-        detail1: 'Ordre: 13/98745',
-        detail2: 'Devise: DT',
-        location: 'Marseille Port Autonome',
-        createdAt: '2026-10-15T08:00:00.000Z',
-        status: 'active'
-      },
-      {
-        key: 'CP-SOC-MARS-D4E5F6-7A9B',
-        role: 'societe',
-        holderName: 'TransMed Crewing Services',
-        detail1: 'Resp: Claire Beauchamp',
-        detail2: 'Tél: +216 71 00 00 00',
-        location: 'Tunis / Marseille Port',
-        createdAt: '2026-10-15T09:30:00.000Z',
-        status: 'active'
-      }
+    // Données par défaut initiales (vide : seules les licences enregistrées sont conservées)
+    const DEFAULT_LICENSES = [];
+    const FICTIVE_KEYS = [
+      'CP-MED-13987-A1B2C3-4E8F',
+      'CP-SOC-MARS-D4E5F6-7A9B',
+      'CP-MED-24552-D8E9F1-3A4B',
+      'CP-MED-75104-C4B2A1-9F8E',
+      'med-demo-1',
+      'soc-demo-1'
+    ];
+    const FICTIVE_NAMES = [
+      'Dr. Jean-Marc FERRARI',
+      'Dr. Leila BEN SALAH',
+      'Dr. Philippe TARDIEU',
+      'TransMed Crewing Services',
+      'Azur Crewing Agency'
     ];
 
     let currentFilter = 'all';
@@ -451,13 +445,21 @@
     function getStoredLicenses() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY_LICENSES);
-        if (!raw) {
-          localStorage.setItem(STORAGE_KEY_LICENSES, JSON.stringify(DEFAULT_LICENSES));
-          return [...DEFAULT_LICENSES];
+        let list = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(list)) list = [];
+
+        // Purge automatique des licences et comptes fictifs
+        const filtered = list.filter(l => 
+          !FICTIVE_KEYS.includes(l.key) && 
+          !FICTIVE_NAMES.includes(l.holderName)
+        );
+
+        if (raw && filtered.length !== list.length) {
+          saveStoredLicenses(filtered);
         }
-        return JSON.parse(raw);
+        return filtered;
       } catch {
-        return [...DEFAULT_LICENSES];
+        return [];
       }
     }
 
