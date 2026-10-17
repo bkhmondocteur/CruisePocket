@@ -6,6 +6,7 @@ import {
   Doctor,
   Candidate
 } from '../types';
+import { firebaseSyncService } from '../lib/firebase';
 
 /**
  * Hash function (Fletcher/DJB2 based) to produce deterministic hexadecimal hashes
@@ -244,6 +245,11 @@ export function saveRegisteredLicense(role: Role, key: string, data: Doctor | Se
     }
     localStorage.setItem(STORAGE_KEY_LICENSES, JSON.stringify(list));
 
+    // Synchronisation Cloud Firebase Firestore (Inter-appareils)
+    firebaseSyncService.saveLicense(newEntry).catch((err) => {
+      console.warn('[Firebase] Sauvegarde de licence ignorée (mode hors-ligne):', err);
+    });
+
     // Diffuser immédiatement en temps réel multi-onglets et événements locaux
     if (typeof window !== 'undefined') {
       try {
@@ -262,6 +268,96 @@ export function saveRegisteredLicense(role: Role, key: string, data: Doctor | Se
   } catch (e) {
     console.error('Erreur sauvegarde registre:', e);
   }
+}
+
+// ============================================================================
+// ÉCOUTEUR CLOUD FIREBASE POUR LES LICENCES (Multi-Appareils)
+// ============================================================================
+let isFirebaseLicenseListenerActive = false;
+
+export function initFirebaseLicenseSync() {
+  if (isFirebaseLicenseListenerActive || typeof window === 'undefined') return;
+  isFirebaseLicenseListenerActive = true;
+
+  firebaseSyncService.subscribeToLicenses((remoteLicenses) => {
+    if (!Array.isArray(remoteLicenses) || remoteLicenses.length === 0) return;
+
+    let hasLocalChanges = false;
+    const registry = getLicenseRegistry();
+    const rawList = localStorage.getItem(STORAGE_KEY_LICENSES);
+    const localList: any[] = rawList ? JSON.parse(rawList) : [];
+
+    remoteLicenses.forEach((item: any) => {
+      const keyUpper = item.key?.trim().toUpperCase();
+      if (!keyUpper || FICTIVE_LICENSE_KEYS.includes(keyUpper) || FICTIVE_NAMES.includes(item.holderName)) {
+        return;
+      }
+
+      const role: Role = item.role || (keyUpper.startsWith('CP-MED') ? 'medecin' : 'societe');
+      const sig = verifyLicenseSignature(keyUpper);
+
+      if (role === 'medecin') {
+        const coreId = (sig.isValid && sig.hash)
+          ? `med-${sig.hash.toLowerCase()}`
+          : `med-${keyUpper.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+
+        const docProfile: Doctor = item.profile || {
+          id: coreId,
+          full_name: item.holderName,
+          order_number: item.detail1?.replace(/^Ordre:\s*/i, '').replace(/[^0-9/]/g, '') || item.detail1 || 'Certifié',
+          practice_location: item.location || 'Cabinet Médical Maritime',
+          license_key: item.key,
+          created_at: item.createdAt || new Date().toISOString()
+        };
+
+        if (!registry.doctors[keyUpper]) {
+          registry.doctors[keyUpper] = docProfile;
+          hasLocalChanges = true;
+        }
+      } else {
+        const coreId = (sig.isValid && sig.hash)
+          ? `soc-${sig.hash.toLowerCase()}`
+          : `soc-${keyUpper.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+
+        const compProfile: ServiceCompany = item.profile || {
+          id: coreId,
+          name: item.holderName,
+          manager_name: item.detail1?.replace(/^Resp:\s*/i, '') || 'Responsable',
+          phone: item.detail2?.replace(/^Tél:\s*/i, '') || '',
+          location: item.location || 'Port Maritime',
+          license_key: item.key,
+          created_at: item.createdAt || new Date().toISOString()
+        };
+
+        if (!registry.companies[keyUpper]) {
+          registry.companies[keyUpper] = compProfile;
+          hasLocalChanges = true;
+        }
+      }
+
+      // Synchroniser la liste formelle du keygen
+      const existIdx = localList.findIndex((l: any) => l.key?.toUpperCase() === keyUpper);
+      if (existIdx === -1) {
+        localList.unshift(item);
+        hasLocalChanges = true;
+      }
+    });
+
+    if (hasLocalChanges) {
+      try {
+        localStorage.setItem(REGISTRY_STORAGE_KEY, JSON.stringify(registry));
+        localStorage.setItem(STORAGE_KEY_LICENSES, JSON.stringify(localList));
+        window.dispatchEvent(new CustomEvent('cruisepocket_license_update'));
+      } catch (e) {
+        console.warn('Erreur synchronisation locale licences Firebase:', e);
+      }
+    }
+  });
+}
+
+// Initialisation automatique au chargement
+if (typeof window !== 'undefined') {
+  initFirebaseLicenseSync();
 }
 
 /**

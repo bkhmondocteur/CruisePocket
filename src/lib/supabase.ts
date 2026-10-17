@@ -3,6 +3,7 @@ import { Candidate, CandidateEvent, DeletionInfo, Role, Doctor, ConsultationRece
 import { backupService } from './backupService';
 import { documentStorage } from './documentStorage';
 import { isLicenseRevoked, getLicenseRegistry, FICTIVE_LICENSE_KEYS, FICTIVE_NAMES, isCandidateAssignedToDoctor } from '../utils/license';
+import { firebaseSyncService } from './firebase';
 
 export const INITIAL_APPROVED_DOCTORS: Doctor[] = [];
 export const FICTIVE_CANDIDATE_IDS = ['cand-101', 'cand-102', 'cand-103', 'cand-104'];
@@ -181,13 +182,18 @@ export const dataService = {
       await supabase.from('candidates').insert([lightweightCopy]);
     }
 
-    // Sauvegarde locale optimisée et protégée contre le dépassement de quota
-    const existing = await this.getCandidates();
-    
     // Le document lourd est déjà sécurisé dans le coffre local IndexedDB via documentStorage.
-    // Pour localStorage, AUCUN base64 ne doit résider : garantie absolue de légèreté (< 1 Ko par dossier).
+    // Pour localStorage et Firebase, AUCUN base64 ne doit résider : garantie absolue de légèreté (< 1 Ko par dossier).
     const storageRecord = { ...newRecord };
     delete storageRecord.passport_file_url;
+
+    // Sauvegarde Cloud Firebase Firestore (Transmission temps réel Société -> Médecin)
+    firebaseSyncService.saveCandidate(storageRecord).catch((err) => {
+      console.warn('[Firebase] Sauvegarde candidat ignorée (mode hors-ligne):', err);
+    });
+
+    // Sauvegarde locale optimisée et protégée contre le dépassement de quota
+    const existing = await this.getCandidates();
 
     const cleanExisting = existing.map(c => {
       const cpy = { ...c };
@@ -274,6 +280,11 @@ export const dataService = {
     delete updatedRecord.passport_file_url;
     existing[index] = updatedRecord;
 
+    // Synchronisation Cloud Firebase Firestore
+    firebaseSyncService.saveCandidate(updatedRecord).catch((err) => {
+      console.warn('[Firebase] Mise à jour candidat ignorée (mode hors-ligne):', err);
+    });
+
     const cleanExisting = existing.map(c => {
       const cpy = { ...c };
       delete cpy.passport_file_url;
@@ -309,8 +320,14 @@ export const dataService = {
       await supabase.from('candidates').delete().eq('id', id);
     }
 
+    // Suppression Cloud Firebase Firestore
+    firebaseSyncService.deleteCandidate(id).catch((err) => {
+      console.warn('[Firebase] Suppression candidat ignorée (mode hors-ligne):', err);
+    });
+
     if (candidateToDelete.passport_file_id) {
       await documentStorage.deleteDocument(candidateToDelete.passport_file_id);
+      firebaseSyncService.cleanupDocumentChunks(candidateToDelete.passport_file_id).catch(console.warn);
     }
 
     const updated = existing.filter(c => c.id !== id);
@@ -401,6 +418,17 @@ export const dataService = {
           }
         }
       }
+
+      // Synchronisation Cloud Firebase Firestore des accusés de réception
+      for (const c of updatedList) {
+        if (c.doctor_received_at === nowIso) {
+          firebaseSyncService.updateCandidateFields(c.id, {
+            doctor_received_at: nowIso,
+            doctor_name: c.doctor_name || doctor.full_name,
+            updated_at: nowIso
+          }).catch((err) => console.warn('[Firebase] Accusé réception ignoré (mode hors-ligne):', err));
+        }
+      }
     }
   },
 
@@ -447,6 +475,14 @@ export const dataService = {
         doctor_received_at: current.doctor_received_at || nowIso
       }).eq('id', candidateId);
     }
+
+    // Synchronisation Cloud Firebase Firestore de la confirmation de consultation
+    firebaseSyncService.updateCandidateFields(candidateId, {
+      doctor_consulted_at: nowIso,
+      doctor_consulted_by: doctorName,
+      doctor_received_at: current.doctor_received_at || nowIso,
+      updated_at: nowIso
+    }).catch((err) => console.warn('[Firebase] Accusé consultation ignoré (mode hors-ligne):', err));
 
     const receipt: ConsultationReceipt = {
       candidateId,
@@ -509,14 +545,28 @@ export const dataService = {
   },
 
   /**
-   * Charger le document lourd d'un candidat à la demande depuis le coffre IndexedDB
+   * Charger le document lourd d'un candidat à la demande :
+   * 1. Cherche dans le coffre local IndexedDB
+   * 2. Si absent (ex: le médecin consulte sur un autre appareil), télécharge et réassemble
+   *    automatiquement les fragments depuis Firestore !
    */
   async loadCandidateDocument(candidate: Candidate): Promise<string | undefined> {
     if (candidate.passport_file_url) return candidate.passport_file_url;
     if (!candidate.passport_file_id) return undefined;
 
+    // 1. Chercher d'abord dans le coffre local IndexedDB
     const doc = await documentStorage.getDocument(candidate.passport_file_id);
-    return doc?.dataUrl;
+    if (doc?.dataUrl) return doc.dataUrl;
+
+    // 2. Si absent localement, télécharger et réassembler les fragments depuis Firestore
+    try {
+      const reassembled = await firebaseSyncService.downloadAndReassembleDocument(candidate.passport_file_id);
+      if (reassembled) return reassembled;
+    } catch (e) {
+      console.warn('[Firebase] Erreur téléchargement et réassemblage document:', e);
+    }
+
+    return undefined;
   },
 
   /**
@@ -602,7 +652,78 @@ export const dataService = {
       };
     }
 
-    // Écouteur local
+    // 1. Écouteur Cloud Firebase Firestore (Temps Réel Inter-Appareils)
+    const unsubscribeFirebase = firebaseSyncService.subscribeToCandidates((remoteCandidates) => {
+      if (!Array.isArray(remoteCandidates)) return;
+
+      const rawLocal = localStorage.getItem(STORAGE_CANDIDATES_KEY);
+      let localList: Candidate[] = rawLocal ? JSON.parse(rawLocal) : [];
+      let hasUpdates = false;
+
+      for (const remote of remoteCandidates) {
+        if (FICTIVE_CANDIDATE_IDS.includes(remote.id)) continue;
+        const localIdx = localList.findIndex(c => c.id === remote.id);
+
+        if (localIdx === -1) {
+          localList.unshift(remote);
+          hasUpdates = true;
+        } else {
+          const oldDoc = localList[localIdx];
+          const remoteTime = new Date(remote.updated_at || remote.created_at).getTime();
+          const localTime = new Date(oldDoc.updated_at || oldDoc.created_at).getTime();
+
+          // Accusé de réception détecté
+          if (!oldDoc.doctor_received_at && remote.doctor_received_at) {
+            window.dispatchEvent(new CustomEvent('cruisepocket_candidate_receipt', {
+              detail: { 
+                type: 'CANDIDATE_RECEIVED', 
+                candidate: remote, 
+                receipt: {
+                  candidateId: remote.id,
+                  candidateName: `${remote.civility} ${remote.last_name} ${remote.first_name}`,
+                  doctorName: remote.doctor_name || 'Dr. Médecin Agréé',
+                  timestamp: remote.doctor_received_at,
+                  action: 'opened_app'
+                } 
+              }
+            }));
+          }
+
+          // Accusé de consultation détecté
+          if (!oldDoc.doctor_consulted_at && remote.doctor_consulted_at) {
+            window.dispatchEvent(new CustomEvent('cruisepocket_candidate_receipt', {
+              detail: { 
+                type: 'CANDIDATE_CONSULTED', 
+                candidate: remote, 
+                receipt: {
+                  candidateId: remote.id,
+                  candidateName: `${remote.civility} ${remote.last_name} ${remote.first_name}`,
+                  doctorName: remote.doctor_consulted_by || remote.doctor_name || 'Dr. Médecin Agréé',
+                  timestamp: remote.doctor_consulted_at,
+                  action: 'consulted_fiche'
+                } 
+              }
+            }));
+          }
+
+          if (remoteTime >= localTime || remote.doctor_received_at !== oldDoc.doctor_received_at || remote.doctor_consulted_at !== oldDoc.doctor_consulted_at) {
+            localList[localIdx] = remote;
+            hasUpdates = true;
+          }
+        }
+      }
+
+      if (hasUpdates) {
+        try {
+          localStorage.setItem(STORAGE_CANDIDATES_KEY, JSON.stringify(localList));
+          callback({ type: 'CANDIDATE_ADDED' });
+        } catch (e) {
+          console.warn('Erreur mise à jour locale depuis Firebase:', e);
+        }
+      }
+    });
+
+    // Écouteur local (BroadcastChannel / LocalStorage / Focus)
     const handleStorageEvent = (e: StorageEvent) => {
       if (e.key === STORAGE_CANDIDATES_KEY) {
         callback({ type: 'CANDIDATE_ADDED' });
@@ -654,6 +775,7 @@ export const dataService = {
     localBroadcast?.addEventListener('message', handleBroadcast);
 
     return () => {
+      unsubscribeFirebase();
       window.removeEventListener('storage', handleStorageEvent);
       window.removeEventListener('cruisepocket_candidate_update', handleCustomUpdate);
       window.removeEventListener('cruisepocket_candidate_deleted', handleCustomDeletion);
