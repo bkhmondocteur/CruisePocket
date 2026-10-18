@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Candidate } from '../../types';
+import { useI18n } from '../../i18n/I18nContext';
 import { 
   DollarSign, 
   TrendingUp, 
@@ -18,6 +19,7 @@ interface FinancialStatsProps {
 }
 
 export const FinancialStats: React.FC<FinancialStatsProps> = ({ candidates, onBack }) => {
+  const { t } = useI18n();
   // Filtres de date par défaut : début de l'année en cours jusqu'à aujourd'hui
   const currentYear = new Date().getFullYear();
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
@@ -100,17 +102,17 @@ export const FinancialStats: React.FC<FinancialStatsProps> = ({ candidates, onBa
         <div>
           <button
             onClick={onBack}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors py-1.5 px-3 rounded-lg bg-slate-900 border border-slate-800 mb-3"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors py-1.5 px-3 rounded-lg bg-slate-900 border border-slate-800 mb-3 cursor-pointer"
           >
-            <ChevronLeft className="w-4 h-4" />
-            Retour au Tableau de Bord
+            <ChevronLeft className="w-4 h-4 rtl:rotate-180" />
+            <span>{t('stats.back')}</span>
           </button>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white flex items-center gap-2.5">
             <DollarSign className="w-7 h-7 text-emerald-400" />
-            Bilan Financier & Statistiques
+            <span>{t('stats.title')}</span>
           </h2>
           <p className="text-slate-400 text-xs sm:text-sm mt-1">
-            Analyse des honoraires médicaux maritime, taux de recouvrement et répartition par société
+            {t('stats.subtitle')}
           </p>
         </div>
 
@@ -118,7 +120,7 @@ export const FinancialStats: React.FC<FinancialStatsProps> = ({ candidates, onBa
         <div className="flex items-center gap-2">
           <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 flex items-center gap-2">
             <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
-            <span>{filteredRecords.length} visites sur la période</span>
+            <span>{filteredRecords.length} STCW</span>
           </div>
         </div>
       </div>
@@ -127,12 +129,12 @@ export const FinancialStats: React.FC<FinancialStatsProps> = ({ candidates, onBa
       <div className="glass-panel rounded-2xl p-5 border border-slate-800 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-2 text-sm font-bold text-white">
           <Calendar className="w-4 h-4 text-cyan-400" />
-          <span>Filtrer par Période d'activité :</span>
+          <span>{t('stats.period')} :</span>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
-            <label className="text-xs text-slate-400 font-medium">Du</label>
+            <label className="text-xs text-slate-400 font-medium">{t('stats.from')}</label>
             <input
               type="date"
               value={startDate}
@@ -142,7 +144,7 @@ export const FinancialStats: React.FC<FinancialStatsProps> = ({ candidates, onBa
           </div>
 
           <div className="flex items-center gap-2">
-            <label className="text-xs text-slate-400 font-medium">au</label>
+            <label className="text-xs text-slate-400 font-medium">{t('stats.to')}</label>
             <input
               type="date"
               value={endDate}
@@ -156,9 +158,9 @@ export const FinancialStats: React.FC<FinancialStatsProps> = ({ candidates, onBa
               setStartDate(`${currentYear}-01-01`);
               setEndDate(new Date().toISOString().split('T')[0]);
             }}
-            className="text-xs text-slate-400 hover:text-cyan-400 underline underline-offset-4 ml-2"
+            className="text-xs text-slate-400 hover:text-cyan-400 underline underline-offset-4 ml-2 cursor-pointer"
           >
-            Réinitialiser
+            Reset
           </button>
         </div>
       </div>
@@ -167,9 +169,9 @@ export const FinancialStats: React.FC<FinancialStatsProps> = ({ candidates, onBa
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         
         {/* TOTAL FINANCIER */}
-        <div className="glass-panel rounded-2xl p-6 border-l-4 border-cyan-500 shadow-xl relative overflow-hidden">
+        <div className="glass-panel rounded-2xl p-6 border-l-4 rtl:border-l-0 rtl:border-r-4 border-cyan-500 shadow-xl relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs uppercase font-bold tracking-wider text-slate-400">Montant Total</span>
+            <span className="text-xs uppercase font-bold tracking-wider text-slate-400">{t('stats.total')}</span>
             <div className="p-2 rounded-xl bg-cyan-950 text-cyan-400 border border-cyan-800">
               <TrendingUp className="w-4 h-4" />
             </div>
@@ -179,15 +181,15 @@ export const FinancialStats: React.FC<FinancialStatsProps> = ({ candidates, onBa
               {totalAmount.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} DT
             </span>
             <p className="text-[11px] text-slate-400 mt-1">
-              Sur {filteredRecords.length} dossier(s) analysé(s) (Dinars Tunisiens)
+              {filteredRecords.length} dossiers
             </p>
           </div>
         </div>
 
         {/* PAYÉ */}
-        <div className="glass-panel rounded-2xl p-6 border-l-4 border-emerald-500 shadow-xl relative overflow-hidden">
+        <div className="glass-panel rounded-2xl p-6 border-l-4 rtl:border-l-0 rtl:border-r-4 border-emerald-500 shadow-xl relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs uppercase font-bold tracking-wider text-slate-400">Montant Payé</span>
+            <span className="text-xs uppercase font-bold tracking-wider text-slate-400">{t('stats.paid')}</span>
             <div className="p-2 rounded-xl bg-emerald-950 text-emerald-400 border border-emerald-800">
               <CheckCircle className="w-4 h-4" />
             </div>
@@ -197,15 +199,15 @@ export const FinancialStats: React.FC<FinancialStatsProps> = ({ candidates, onBa
               {paidAmount.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} DT
             </span>
             <p className="text-[11px] text-emerald-500/80 mt-1">
-              {totalAmount > 0 ? Math.round((paidAmount / totalAmount) * 100) : 0}% de recouvrement
+              {totalAmount > 0 ? Math.round((paidAmount / totalAmount) * 100) : 0}%
             </p>
           </div>
         </div>
 
         {/* NON PAYÉ */}
-        <div className="glass-panel rounded-2xl p-6 border-l-4 border-rose-500 shadow-xl relative overflow-hidden">
+        <div className="glass-panel rounded-2xl p-6 border-l-4 rtl:border-l-0 rtl:border-r-4 border-rose-500 shadow-xl relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs uppercase font-bold tracking-wider text-slate-400">En Attente (Non Payé)</span>
+            <span className="text-xs uppercase font-bold tracking-wider text-slate-400">{t('stats.unpaid')}</span>
             <div className="p-2 rounded-xl bg-rose-950 text-rose-400 border border-rose-800">
               <Clock className="w-4 h-4" />
             </div>
@@ -215,7 +217,7 @@ export const FinancialStats: React.FC<FinancialStatsProps> = ({ candidates, onBa
               {unpaidAmount.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} DT
             </span>
             <p className="text-[11px] text-rose-400/80 mt-1">
-              {totalAmount > 0 ? Math.round((unpaidAmount / totalAmount) * 100) : 0}% à percevoir
+              {totalAmount > 0 ? Math.round((unpaidAmount / totalAmount) * 100) : 0}%
             </p>
           </div>
         </div>
@@ -229,7 +231,7 @@ export const FinancialStats: React.FC<FinancialStatsProps> = ({ candidates, onBa
         <div className="lg:col-span-6 glass-panel rounded-2xl p-6 border border-slate-800 shadow-xl space-y-4">
           <h3 className="text-sm font-bold text-white flex items-center gap-2">
             <PieChart className="w-4 h-4 text-emerald-400" />
-            Répartition des Paiements
+            <span>{t('stats.byPayer')}</span>
           </h3>
 
           <div className="space-y-3 pt-2">
@@ -238,34 +240,34 @@ export const FinancialStats: React.FC<FinancialStatsProps> = ({ candidates, onBa
               <div 
                 style={{ width: `${totalAmount > 0 ? (paidAmount / totalAmount) * 100 : 0}%` }} 
                 className="bg-emerald-500 h-full transition-all duration-500"
-                title={`Payé: ${paidAmount} DT`}
+                title={`${t('stats.paid')}: ${paidAmount} DT`}
               />
               <div 
                 style={{ width: `${totalAmount > 0 ? (unpaidAmount / totalAmount) * 100 : 0}%` }} 
                 className="bg-rose-500 h-full transition-all duration-500"
-                title={`Non payé: ${unpaidAmount} DT`}
+                title={`${t('stats.unpaid')}: ${unpaidAmount} DT`}
               />
             </div>
 
             <div className="flex items-center justify-between text-xs pt-1">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-                <span className="text-slate-300">Payé : {paidAmount} DT</span>
+                <span className="text-slate-300">{t('stats.paid')} : {paidAmount} DT</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-rose-500"></div>
-                <span className="text-slate-300">Non payé : {unpaidAmount} DT</span>
+                <span className="text-slate-300">{t('stats.unpaid')} : {unpaidAmount} DT</span>
               </div>
             </div>
           </div>
 
           <div className="pt-4 border-t border-slate-800/80 grid grid-cols-2 gap-4 text-xs">
             <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
-              <span className="text-slate-500 block">Règlement Candidat</span>
+              <span className="text-slate-500 block">{t('payer.Le candidat lui-même')}</span>
               <span className="font-bold text-white text-base mt-0.5 block">{payerBreakdown.candidatePaid} DT</span>
             </div>
             <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
-              <span className="text-slate-500 block">Prise en charge Société</span>
+              <span className="text-slate-500 block">{t('payer.La société')}</span>
               <span className="font-bold text-white text-base mt-0.5 block">{payerBreakdown.companyPaid} DT</span>
             </div>
           </div>
@@ -275,12 +277,12 @@ export const FinancialStats: React.FC<FinancialStatsProps> = ({ candidates, onBa
         <div className="lg:col-span-6 glass-panel rounded-2xl p-6 border border-slate-800 shadow-xl space-y-4">
           <h3 className="text-sm font-bold text-white flex items-center gap-2">
             <Building2 className="w-4 h-4 text-cyan-400" />
-            Répartition Financière par Société de Service
+            <span>{t('stats.byCompany')}</span>
           </h3>
 
           {companyBreakdown.length === 0 ? (
             <div className="py-8 text-center text-slate-500 text-xs">
-              Aucune transaction sur cette période.
+              -
             </div>
           ) : (
             <div className="space-y-3 pt-1 max-h-56 overflow-y-auto pr-1">
@@ -299,8 +301,8 @@ export const FinancialStats: React.FC<FinancialStatsProps> = ({ candidates, onBa
                     </div>
 
                     <div className="flex items-center justify-between text-[11px] text-slate-400 pt-0.5">
-                      <span>{item.count} marin(s)</span>
-                      <span>Payé: <strong className="text-emerald-400">{item.paid} DT</strong> | En attente: <strong className="text-rose-400">{item.unpaid} DT</strong></span>
+                      <span>{item.count}</span>
+                      <span>{t('stats.paid')}: <strong className="text-emerald-400">{item.paid} DT</strong> | {t('stats.unpaid')}: <strong className="text-rose-400">{item.unpaid} DT</strong></span>
                     </div>
                   </div>
                 );

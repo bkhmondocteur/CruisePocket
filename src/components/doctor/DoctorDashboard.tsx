@@ -24,9 +24,11 @@ import {
   RotateCw
 } from 'lucide-react';
 import { CandidateFicheModal } from '../common/CandidateFicheModal';
+import { useI18n } from '../../i18n/I18nContext';
 
 export const DoctorDashboard: React.FC = () => {
   const { doctorProfile } = useAuth();
+  const { t } = useI18n();
   
   // Data state
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -106,7 +108,9 @@ export const DoctorDashboard: React.FC = () => {
 
   const handleDeleteCandidate = async (candidate: Candidate) => {
     const confirmDelete = window.confirm(
-      `Êtes-vous sûr de vouloir supprimer définitivement le dossier de ${candidate.civility} ${candidate.last_name} ${candidate.first_name} ?\n\nLa Société de Service (${candidate.service_company_name}) sera immédiatement notifiée en temps réel.`
+      t('doctor.deleteConfirm', {
+        name: `${candidate.civility} ${candidate.last_name} ${candidate.first_name}`
+      })
     );
     if (!confirmDelete) return;
 
@@ -224,17 +228,17 @@ export const DoctorDashboard: React.FC = () => {
     <div className="flex-1 max-w-7xl mx-auto w-full px-2.5 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
       
       {/* En-tête Espace Médecin */}
-      <div className="glass-panel rounded-2xl p-4 sm:p-6 border-l-4 border-emerald-500 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="glass-panel rounded-2xl p-4 sm:p-6 border-l-4 rtl:border-l-0 rtl:border-r-4 border-emerald-500 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-950 text-emerald-300 border border-emerald-800 mb-2">
             <Stethoscope className="w-3.5 h-3.5" />
-            Médecin Agréé Maritime
+            {t('doctor.badge')}
           </div>
           <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-            {doctorProfile?.full_name || 'Cabinet Médical Maritime'}
+            {doctorProfile?.full_name || t('header.doctor')}
           </h2>
           <p className="text-slate-400 text-xs sm:text-sm mt-1">
-            N° d'Ordre : <strong className="text-slate-300">{doctorProfile?.order_number}</strong> | Lieu d'exercice : <strong className="text-slate-300">{doctorProfile?.practice_location}</strong>
+            {t('doctor.orderNumber', { order: doctorProfile?.order_number || '-' })} | {t('doctor.practiceLocation', { location: doctorProfile?.practice_location || '-' })}
           </p>
         </div>
 
@@ -242,10 +246,10 @@ export const DoctorDashboard: React.FC = () => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setCurrentView('stats')}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white font-bold text-xs shadow-md transition-all group"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white font-bold text-xs shadow-md transition-all group cursor-pointer"
           >
             <BarChart3 className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
-            <span>Bilan Financier & Paramètres</span>
+            <span>{t('doctor.statsBtn')}</span>
           </button>
         </div>
       </div>
@@ -255,9 +259,9 @@ export const DoctorDashboard: React.FC = () => {
         <div className="p-3.5 rounded-xl bg-gradient-to-r from-cyan-950 to-maritime-950 border border-cyan-500/60 text-cyan-200 text-xs font-semibold flex items-center justify-between shadow-lg animate-bounce">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-cyan-400" />
-            <span>Nouveau dossier candidat reçu en direct d'une société partenaire !</span>
+            <span>{t('doctor.newArrival')}</span>
           </div>
-          <span className="bg-cyan-800 text-white px-2 py-0.5 rounded text-[10px]">Temps Réel</span>
+          <span className="bg-cyan-800 text-white px-2 py-0.5 rounded text-[10px]">Live</span>
         </div>
       )}
 
@@ -270,20 +274,20 @@ export const DoctorDashboard: React.FC = () => {
             </div>
             <div>
               <div className="font-bold text-white text-sm flex items-center gap-2">
-                <span>Notification Mutuelle : Dossier Supprimé</span>
+                <span>{t('company.delete')} : {deletionNotice.candidateName}</span>
                 <span className="text-[10px] bg-amber-900/80 px-2 py-0.5 rounded text-amber-300 font-mono">
                   {deletionNotice.time}
                 </span>
               </div>
               <p className="mt-1 text-amber-200/90 leading-relaxed">
-                Le dossier du marin <strong>{deletionNotice.candidateName}</strong> a été retiré par {deletionNotice.role} (<strong>{deletionNotice.author}</strong>). Votre liste a été synchronisée en temps réel.
+                {deletionNotice.author} ({deletionNotice.role})
               </p>
             </div>
           </div>
           <button
             onClick={() => setDeletionNotice(null)}
             className="p-1.5 text-amber-400 hover:text-white rounded-lg hover:bg-amber-900/60 transition-colors"
-            title="Fermer cette notification"
+            title="Fermer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -297,45 +301,45 @@ export const DoctorDashboard: React.FC = () => {
         <div className="flex items-center p-1 rounded-xl bg-slate-950 border border-slate-800 w-full sm:w-auto">
           <button
             onClick={() => setStatusTab('En instance')}
-            className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+            className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
               statusTab === 'En instance'
                 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40 shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <Clock className="w-3.5 h-3.5" />
-            <span>En instance</span>
-            <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-amber-950 text-amber-300 border border-amber-800">
+            <span>{t('doctor.tabPending')}</span>
+            <span className="mx-1 px-1.5 py-0.2 rounded-full text-[10px] bg-amber-950 text-amber-300 border border-amber-800">
               {pendingCandidates.length}
             </span>
           </button>
 
           <button
             onClick={() => setStatusTab('Effectué')}
-            className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+            className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
               statusTab === 'Effectué'
                 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Effectué</span>
-            <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800">
+            <span>{t('doctor.tabCompleted')}</span>
+            <span className="mx-1 px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800">
               {completedCandidates.length}
             </span>
           </button>
 
           <button
             onClick={() => setStatusTab('Archivés')}
-            className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+            className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
               statusTab === 'Archivés'
                 ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <Archive className="w-3.5 h-3.5 text-purple-400" />
-            <span>Archivés (&gt; 1 mois)</span>
-            <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-purple-950 text-purple-300 border border-purple-800">
+            <span>{t('doctor.tabArchived')}</span>
+            <span className="mx-1 px-1.5 py-0.2 rounded-full text-[10px] bg-purple-950 text-purple-300 border border-purple-800">
               {archivedCandidates.length}
             </span>
           </button>
@@ -352,10 +356,10 @@ export const DoctorDashboard: React.FC = () => {
                   ? 'bg-emerald-950 text-emerald-300 border-emerald-500 shadow-sm'
                   : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white'
               }`}
-              title="Filtrer uniquement les dossiers affectés à votre cabinet"
+              title={filterMyDossiersOnly ? t('doctor.filterAll') : t('doctor.filterMine')}
             >
               <Stethoscope className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{filterMyDossiersOnly ? 'Mes dossiers uniquement' : 'Tous les dossiers'}</span>
+              <span>{filterMyDossiersOnly ? t('doctor.filterMine') : t('doctor.filterAll')}</span>
             </button>
           )}
 
@@ -365,10 +369,10 @@ export const DoctorDashboard: React.FC = () => {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Rechercher marin, passeport, médecin..."
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                placeholder={t('doctor.searchPlaceholder')}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 rtl:pl-4 rtl:pr-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
-              <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5" />
+              <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 rtl:left-auto rtl:right-3 top-2.5" />
             </div>
 
             <button
@@ -378,7 +382,7 @@ export const DoctorDashboard: React.FC = () => {
                 fetchCandidates();
               }}
               className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500/50 text-slate-400 hover:text-white transition-all cursor-pointer group shrink-0"
-              title="Actualiser instantanément la liste des dossiers médicaux"
+              title={t('header.refresh')}
             >
               <RotateCw className="w-3.5 h-3.5 text-emerald-400 group-hover:rotate-180 transition-transform" />
             </button>
@@ -391,7 +395,7 @@ export const DoctorDashboard: React.FC = () => {
       {loading ? (
         <div className="py-16 text-center text-slate-400 text-sm">
           <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-          Chargement des dossiers médicaux...
+          {t('header.refreshing')}
         </div>
       ) : displayedList.length === 0 ? (
         <div className="glass-panel rounded-2xl p-12 text-center border border-slate-800 space-y-4">
@@ -399,28 +403,19 @@ export const DoctorDashboard: React.FC = () => {
             {statusTab === 'En instance' ? <Clock className="w-6 h-6" /> : <CheckCircle2 className="w-6 h-6" />}
           </div>
           <h4 className="text-base font-bold text-white">
-            Aucun dossier "{statusTab}" pour le moment
+            {statusTab === 'En instance' ? t('doctor.noPending') : statusTab === 'Effectué' ? t('doctor.noCompleted') : t('doctor.noArchived')}
           </h4>
 
-          {filterMyDossiersOnly && currentTabList.length > 0 ? (
+          {filterMyDossiersOnly && currentTabList.length > 0 && (
             <div className="space-y-3 pt-2">
-              <p className="text-xs text-amber-300 max-w-md mx-auto leading-relaxed">
-                Il y a actuellement <strong>{currentTabList.length} dossier(s)</strong> reçu(s) dans le système sous l'onglet "{statusTab}", mais ils ne sont pas explicitement restreints à votre cabinet ou sont assignés à un confrère.
-              </p>
               <button
                 type="button"
                 onClick={() => setFilterMyDossiersOnly(false)}
                 className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-lg shadow-emerald-900/30"
               >
-                Afficher tous les dossiers ({currentTabList.length})
+                {t('doctor.filterAll')} ({currentTabList.length})
               </button>
             </div>
-          ) : (
-            <p className="text-xs text-slate-400 max-w-sm mx-auto">
-              {statusTab === 'En instance' 
-                ? 'Dès qu’une société de service transmet un nouveau marin, il apparaîtra ici en temps réel.'
-                : 'Les visites d’aptitude terminées seront archivées sous cet onglet.'}
-            </p>
           )}
         </div>
       ) : (
@@ -451,8 +446,8 @@ export const DoctorDashboard: React.FC = () => {
                     {/* BOUTON TOGGLE STATUT MÉDICAL (En instance <-> Effectué) */}
                     <button
                       onClick={() => handleToggleMedicalStatus(cand)}
-                      title="Cliquer pour basculer le statut médical"
-                      className={`px-2.5 py-1 rounded-full text-xs font-bold border transition-all flex items-center gap-1.5 ${
+                      title={t('fiche.statusMedical')}
+                      className={`px-2.5 py-1 rounded-full text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer ${
                         cand.medical_status === 'Effectué'
                           ? 'bg-emerald-950 text-emerald-400 border-emerald-800 hover:bg-emerald-900'
                           : 'bg-amber-950 text-amber-400 border-amber-800 hover:bg-amber-900'
@@ -463,15 +458,15 @@ export const DoctorDashboard: React.FC = () => {
                       ) : (
                         <Clock className="w-3.5 h-3.5" />
                       )}
-                      <span>{cand.medical_status}</span>
+                      <span>{t(`status.${cand.medical_status}`) || cand.medical_status}</span>
                     </button>
 
                     {/* BOUTON SUPPRIMER LE DOSSIER AVEC NOTIFICATION MUTUELLE */}
                     <button
                       type="button"
                       onClick={() => handleDeleteCandidate(cand)}
-                      className="p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors"
-                      title="Supprimer ce dossier et notifier la société"
+                      className="p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer"
+                      title={t('company.delete')}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -488,23 +483,23 @@ export const DoctorDashboard: React.FC = () => {
                   </div>
 
                   <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
-                    <span>Âge : <strong className="text-slate-200">{cand.age} ans</strong> ({cand.birth_date})</span>
+                    <span>{t('fiche.age')} <strong className="text-slate-200">{cand.age} {t('company.years')}</strong> ({cand.birth_date})</span>
                     <span className={`px-1.5 py-0.5 rounded border text-[10px] font-medium ${
                       cand.contract_type === 'Renouvellement de contrat' || cand.contract_type === 'Contrat intermédiaire'
                         ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
                         : 'bg-slate-900 border-slate-800 text-slate-300'
                     }`}>
-                      {cand.contract_type}
+                      {t(`contract.${cand.contract_type}`) || cand.contract_type}
                     </span>
                   </div>
 
                   <div className="text-[11px] text-slate-400 flex items-center justify-between pt-0.5">
                     <span className="flex items-center gap-1">
                       <Calendar className="w-3 h-3 text-slate-500" />
-                      Embarquement : {cand.embarkation_date}
+                      {t('fiche.embarkation')} {cand.embarkation_date}
                     </span>
                     <span className="text-slate-500 truncate max-w-[120px]" title={cand.service_company_name}>
-                      Via: {cand.service_company_name}
+                      {t('doctor.via', { company: cand.service_company_name })}
                     </span>
                   </div>
 
@@ -512,11 +507,11 @@ export const DoctorDashboard: React.FC = () => {
                   <div className="text-[11px] pt-1.5 border-t border-slate-900/80 flex items-center justify-between">
                     <span className="flex items-center gap-1 text-slate-300">
                       <Stethoscope className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      <span>Destinataire : <strong className="text-emerald-300">{cand.doctor_name || 'Non assigné'}</strong></span>
+                      <span>{t('header.doctor')} : <strong className="text-emerald-300">{cand.doctor_name || '-'}</strong></span>
                     </span>
                     {doctorProfile && isCandidateAssignedToDoctor(cand, doctorProfile) && (
                       <span className="text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800 px-1.5 py-0.5 rounded">
-                        Affecté à vous
+                        {t('doctor.assignedToYou')}
                       </span>
                     )}
                   </div>
@@ -529,9 +524,9 @@ export const DoctorDashboard: React.FC = () => {
                 >
                   <div className="flex items-center gap-1.5 text-slate-300 truncate">
                     <FileText className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                    <span className="truncate">{cand.passport_file_name || `Passeport N° ${cand.passport_number}`}</span>
+                    <span className="truncate">{cand.passport_file_name || `${t('fiche.passport')} ${cand.passport_number}`}</span>
                   </div>
-                  <span className="text-cyan-400 font-semibold hover:underline">Consulter</span>
+                  <span className="text-cyan-400 font-semibold hover:underline">{t('doctor.consultPassport')}</span>
                 </div>
               </div>
 
@@ -540,26 +535,26 @@ export const DoctorDashboard: React.FC = () => {
                 <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 flex items-center justify-between">
                   <span className="flex items-center gap-1">
                     <CreditCard className="w-3 h-3 text-emerald-400" />
-                    Gestion Financière
+                    {t('doctor.financialSection')}
                   </span>
                   
                   {/* TOGGLE PAYÉ / NON PAYÉ */}
                   <button
                     onClick={() => handleToggleFinancialStatus(cand)}
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all ${
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all cursor-pointer ${
                       cand.financial_status === 'Payé'
                         ? 'bg-emerald-950 text-emerald-300 border-emerald-700'
                         : 'bg-rose-950 text-rose-300 border-rose-700'
                     }`}
                   >
-                    {cand.financial_status === 'Payé' ? '✓ Payé' : '✕ Non payé'}
+                    {cand.financial_status === 'Payé' ? `✓ ${t('status.Payé')}` : `✕ ${t('status.Non payé')}`}
                   </button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {/* Champ Montant en Dinars Tunisiens (DT) */}
                   <div>
-                    <label className="block text-[10px] text-slate-500 mb-1">Montant (DT)</label>
+                    <label className="block text-[10px] text-slate-500 mb-1">{t('doctor.amount')}</label>
                     <input
                       type="number"
                       step="5"
@@ -572,14 +567,14 @@ export const DoctorDashboard: React.FC = () => {
 
                   {/* Sélecteur Nom du Payeur */}
                   <div>
-                    <label className="block text-[10px] text-slate-500 mb-1">Payeur</label>
+                    <label className="block text-[10px] text-slate-500 mb-1">{t('doctor.payer')}</label>
                     <select
                       value={cand.payer_name}
                       onChange={(e) => handlePayerChange(cand.id, e.target.value as PayerName)}
                       className="w-full bg-slate-950 border border-slate-700 rounded-lg px-1.5 py-1 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     >
-                      <option value="Le candidat lui-même">Candidat</option>
-                      <option value="La société">Société</option>
+                      <option value="Le candidat lui-même">{t('payer.Le candidat lui-même')}</option>
+                      <option value="La société">{t('payer.La société')}</option>
                     </select>
                   </div>
                 </div>
@@ -588,17 +583,17 @@ export const DoctorDashboard: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleOpenFiche(cand)}
-                  className="w-full mt-2 py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm group"
+                  className="w-full mt-2 py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm group cursor-pointer"
                 >
                   {cand.is_archived ? (
                     <>
                       <ArchiveRestore className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
-                      <span>Ouvrir Fiche (Récupération Instantanée)</span>
+                      <span>{t('company.openArchive')}</span>
                     </>
                   ) : (
                     <>
                       <FileText className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
-                      <span>Consulter Fiche Complète</span>
+                      <span>{t('company.openFiche')}</span>
                     </>
                   )}
                 </button>

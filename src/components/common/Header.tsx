@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useI18n } from '../../i18n/I18nContext';
+import { LanguageSwitcher } from './LanguageSwitcher';
 import { 
   Stethoscope, 
   Building2, 
@@ -20,6 +22,7 @@ interface BeforeInstallPromptEvent extends Event {
 
 export const Header: React.FC = () => {
   const { role, doctorProfile, companyProfile, logout } = useAuth();
+  const { t } = useI18n();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -116,11 +119,11 @@ export const Header: React.FC = () => {
                 Cruise<span className="text-transparent bg-clip-text bg-gradient-to-r from-maritime-400 to-cyan-300">Pocket</span>
               </h1>
               <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-maritime-950 text-maritime-300 border border-maritime-800 shrink-0">
-                PWA Maritime
+                {t('header.pwaBadge')}
               </span>
             </div>
             <p className="text-[11px] text-slate-400 hidden sm:block mt-0.5">
-              Santé & Administration des Gens de Mer
+              {t('header.appSubtitle')}
             </p>
           </div>
         </div>
@@ -128,9 +131,12 @@ export const Header: React.FC = () => {
         {/* Espace Utilisateur & Actions */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 flex-nowrap">
           
+          {/* Sélecteur de Langue (FR / EN / AR) */}
+          <LanguageSwitcher />
+
           {/* Statut Réseau */}
           <div 
-            title={isOnline ? 'En ligne' : 'Mode Hors-ligne activé'} 
+            title={isOnline ? t('header.online') : t('header.offline')} 
             className={`flex items-center gap-1 p-1.5 sm:px-2 sm:py-1 rounded-lg sm:rounded-full text-xs font-medium border ${
               isOnline 
                 ? 'bg-emerald-950/60 border-emerald-800/50 text-emerald-400' 
@@ -138,17 +144,17 @@ export const Header: React.FC = () => {
             }`}
           >
             {isOnline ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
-            <span className="hidden md:inline">{isOnline ? 'Connecté' : 'Hors-ligne'}</span>
+            <span className="hidden md:inline">{isOnline ? t('header.connected') : t('header.offline')}</span>
           </div>
 
           {/* Bouton Sauvegardes & Restauration */}
           <button
             onClick={() => setIsBackupModalOpen(true)}
             className="flex items-center gap-1.5 p-1.5 sm:px-3 sm:py-1.5 text-xs font-bold rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-slate-300 hover:text-white shadow-sm transition-all cursor-pointer"
-            title="Sauvegardes automatiques (5 fichiers rotatifs) et Restauration"
+            title={t('header.backups')}
           >
             <Database className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="hidden sm:inline">Sauvegardes</span>
+            <span className="hidden sm:inline">{t('header.backups')}</span>
           </button>
 
           {/* Bouton Actualiser & Vider le Cache */}
@@ -156,10 +162,10 @@ export const Header: React.FC = () => {
             onClick={handleRefreshAndClearCache}
             disabled={isRefreshing}
             className="flex items-center gap-1.5 p-1.5 sm:px-3 sm:py-1.5 text-xs font-bold rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-amber-500/50 text-slate-300 hover:text-white shadow-sm transition-all cursor-pointer group"
-            title="Effacer le cache du navigateur / PWA et recharger l'application"
+            title={t('header.refresh')}
           >
             <RotateCw className={`w-3.5 h-3.5 text-amber-400 group-hover:rotate-180 transition-transform ${isRefreshing ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">{isRefreshing ? 'Actualisation...' : 'Actualiser'}</span>
+            <span className="hidden sm:inline">{isRefreshing ? t('header.refreshing') : t('header.refresh')}</span>
           </button>
 
           {/* Bouton Installer PWA */}
@@ -167,29 +173,29 @@ export const Header: React.FC = () => {
             <button
               onClick={handleInstallClick}
               className="flex items-center gap-1.5 p-1.5 sm:px-3 sm:py-1.5 text-xs font-semibold rounded-lg bg-gradient-to-r from-cyan-600 to-maritime-600 hover:from-cyan-500 hover:to-maritime-500 text-white shadow-sm transition-all cursor-pointer"
-              title="Installer sur l'écran d'accueil"
+              title={t('header.install')}
             >
               <Download className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Installer</span>
+              <span className="hidden sm:inline">{t('header.install')}</span>
             </button>
           )}
 
           {/* Profil Actif & Déconnexion */}
           {role && (
-            <div className="flex items-center gap-1 sm:gap-2 pl-1.5 sm:pl-2 border-l border-slate-800">
+            <div className="flex items-center gap-1 sm:gap-2 pl-1.5 sm:pl-2 rtl:pl-0 rtl:pr-1.5 sm:rtl:pr-2 border-l rtl:border-l-0 rtl:border-r border-slate-800">
               <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-900/90 border border-slate-800 p-1 sm:px-2.5 sm:py-1.5 rounded-xl">
                 {role === 'medecin' ? (
                   <div className="flex items-center gap-2 text-xs">
                     <div className="w-6 h-6 rounded-lg bg-medical-500/20 text-medical-400 flex items-center justify-center shrink-0">
                       <Stethoscope className="w-3.5 h-3.5" />
                     </div>
-                    <div className="text-left hidden sm:block">
+                    <div className="text-left rtl:text-right hidden sm:block">
                       <div className="font-semibold text-slate-200 truncate max-w-[140px]">
-                        {doctorProfile?.full_name || 'Médecin'}
+                        {doctorProfile?.full_name || t('header.doctor')}
                       </div>
                       <div className="text-[10px] text-slate-400 flex items-center gap-1">
                         <ShieldCheck className="w-3 h-3 text-medical-400" />
-                        Ordre: {doctorProfile?.order_number || 'Certifié'}
+                        <span>{t('header.order')}: {doctorProfile?.order_number || t('header.certified')}</span>
                       </div>
                     </div>
                   </div>
@@ -198,12 +204,12 @@ export const Header: React.FC = () => {
                     <div className="w-6 h-6 rounded-lg bg-maritime-500/20 text-maritime-400 flex items-center justify-center shrink-0">
                       <Building2 className="w-3.5 h-3.5" />
                     </div>
-                    <div className="text-left hidden sm:block">
+                    <div className="text-left rtl:text-right hidden sm:block">
                       <div className="font-semibold text-slate-200 truncate max-w-[140px]">
-                        {companyProfile?.name || 'Société'}
+                        {companyProfile?.name || t('header.company')}
                       </div>
                       <div className="text-[10px] text-slate-400">
-                        {companyProfile?.location || 'Maritime'}
+                        {companyProfile?.location || t('header.maritime')}
                       </div>
                     </div>
                   </div>
@@ -211,10 +217,10 @@ export const Header: React.FC = () => {
 
                 <button
                   onClick={logout}
-                  title="Changer de profil / Déconnexion"
+                  title={t('header.logout')}
                   className="p-1 sm:p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer"
                 >
-                  <LogOut className="w-3.5 h-3.5" />
+                  <LogOut className="w-3.5 h-3.5 rtl:rotate-180" />
                 </button>
               </div>
             </div>

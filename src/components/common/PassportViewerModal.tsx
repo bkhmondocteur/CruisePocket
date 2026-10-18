@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, FileText, Download, ExternalLink, ShieldCheck, Loader2 } from 'lucide-react';
 import { documentStorage } from '../../lib/documentStorage';
+import { useI18n } from '../../i18n/I18nContext';
 
 interface PassportViewerModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export const PassportViewerModal: React.FC<PassportViewerModalProps> = ({
   candidateName,
   passportNumber
 }) => {
+  const { t } = useI18n();
   const [resolvedUrl, setResolvedUrl] = useState<string | undefined>(fileUrl);
   const [loadingDoc, setLoadingDoc] = useState(false);
 
@@ -60,7 +62,7 @@ export const PassportViewerModal: React.FC<PassportViewerModalProps> = ({
             </div>
             <div className="min-w-0">
               <h3 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                <span>Copie du Passeport</span>
+                <span>{t('passport.title')}</span>
                 {passportNumber && (
                   <span className="font-mono text-cyan-400 text-[10px] sm:text-xs px-1.5 py-0.2 rounded bg-slate-800 border border-slate-700">
                     N° {passportNumber}
@@ -68,7 +70,7 @@ export const PassportViewerModal: React.FC<PassportViewerModalProps> = ({
                 )}
               </h3>
               <p className="text-[11px] text-slate-400 truncate">
-                {candidateName ? `Marin : ${candidateName}` : fileName || 'Document justificatif'}
+                {candidateName ? t('passport.seafarer', { name: candidateName }) : fileName || t('passport.docFallback')}
               </p>
             </div>
           </div>
@@ -78,8 +80,8 @@ export const PassportViewerModal: React.FC<PassportViewerModalProps> = ({
               <a
                 href={activeUrl}
                 download={fileName || 'passeport.pdf'}
-                className="p-1.5 sm:p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
-                title="Télécharger la pièce jointe"
+                className="p-1.5 sm:p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+                title={t('passport.download')}
               >
                 <Download className="w-4 h-4" />
               </a>
@@ -98,7 +100,7 @@ export const PassportViewerModal: React.FC<PassportViewerModalProps> = ({
           {loadingDoc ? (
             <div className="flex flex-col items-center gap-3 text-slate-400">
               <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
-              <span className="text-xs">Chargement sécurisé depuis le coffre local...</span>
+              <span className="text-xs">{t('passport.loading')}</span>
             </div>
           ) : activeUrl ? (
             isPdf ? (
@@ -107,8 +109,8 @@ export const PassportViewerModal: React.FC<PassportViewerModalProps> = ({
                   <FileText className="w-8 h-8" />
                 </div>
                 <div>
-                  <h4 className="text-white font-bold text-sm">Document PDF Maritime Vérifié</h4>
-                  <p className="text-xs text-slate-400 mt-1 font-mono">{fileName || 'copie_passeport.pdf'}</p>
+                  <h4 className="text-white font-bold text-sm">{t('passport.title')}</h4>
+                  <p className="text-xs text-slate-400 mt-1 font-mono">{fileName || 'passeport.pdf'}</p>
                 </div>
                 <div className="flex items-center gap-3 mt-2">
                   <a
@@ -118,7 +120,7 @@ export const PassportViewerModal: React.FC<PassportViewerModalProps> = ({
                     className="px-4 py-2 rounded-xl bg-maritime-600 hover:bg-maritime-500 text-white text-xs font-bold flex items-center gap-2 shadow-md transition-all"
                   >
                     <ExternalLink className="w-4 h-4" />
-                    <span>Ouvrir dans un nouvel onglet</span>
+                    <span>PDF</span>
                   </a>
                   <a
                     href={activeUrl}
@@ -126,7 +128,7 @@ export const PassportViewerModal: React.FC<PassportViewerModalProps> = ({
                     className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-2 transition-all"
                   >
                     <Download className="w-4 h-4" />
-                    <span>Télécharger</span>
+                    <span>{t('passport.download')}</span>
                   </a>
                 </div>
               </div>
@@ -134,7 +136,7 @@ export const PassportViewerModal: React.FC<PassportViewerModalProps> = ({
               <div className="relative max-h-[500px] max-w-full rounded-xl overflow-hidden border border-slate-800 shadow-xl bg-slate-900">
                 <img
                   src={activeUrl}
-                  alt="Passeport"
+                  alt={t('passport.title')}
                   className="max-h-[500px] w-auto object-contain"
                 />
               </div>
@@ -145,14 +147,14 @@ export const PassportViewerModal: React.FC<PassportViewerModalProps> = ({
               <div className="w-12 h-12 rounded-xl bg-cyan-950/80 text-cyan-400 border border-cyan-800 mx-auto flex items-center justify-center">
                 <ShieldCheck className="w-6 h-6" />
               </div>
-              <h4 className="text-white font-bold text-sm">Spécimen Numérique de Passeport</h4>
+              <h4 className="text-white font-bold text-sm">{t('passport.title')}</h4>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Le document original a été validé et archivé dans le bucket sécurisé <strong>passports</strong> de Supabase.
+                {t('passport.docFallback')}
               </p>
-              <div className="p-3 rounded-xl bg-slate-950 font-mono text-xs text-slate-300 text-left space-y-1 border border-slate-800">
-                <div><strong>Numéro :</strong> {passportNumber || '21AB94820'}</div>
-                <div><strong>Titulaire :</strong> {candidateName || 'Marin STCW'}</div>
-                <div><strong>Statut :</strong> Conforme aux exigences OMI / OIT</div>
+              <div className="p-3 rounded-xl bg-slate-950 font-mono text-xs text-slate-300 text-left rtl:text-right space-y-1 border border-slate-800">
+                <div><strong>N° :</strong> {passportNumber || '-'}</div>
+                <div><strong>{t('passport.seafarer', { name: candidateName || '-' })}</strong></div>
+                <div><strong>{t('footer.stcw')}</strong></div>
               </div>
             </div>
           )}
@@ -162,13 +164,13 @@ export const PassportViewerModal: React.FC<PassportViewerModalProps> = ({
         <div className="p-3 border-t border-slate-800 bg-slate-950/70 text-center text-[11px] text-slate-500 flex items-center justify-between px-4">
           <span className="flex items-center gap-1">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            Conformité RGPD Médicale & STCW
+            {t('footer.stcw')}
           </span>
           <button
             onClick={onClose}
-            className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium"
+            className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium cursor-pointer"
           >
-            Fermer
+            {t('backup.close')}
           </button>
         </div>
 

@@ -20,6 +20,10 @@
     user-select: auto;
     -webkit-user-select: auto;
   }
+
+  [dir="rtl"] {
+    font-family: 'Cairo', system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif;
+  }
 }
 
 /* Custom Scrollbar */

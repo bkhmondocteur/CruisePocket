@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useAuth } from './context/AuthContext';
+import { useI18n } from './i18n/I18nContext';
 import { Header } from './components/common/Header';
 import { HomePortal } from './components/home/HomePortal';
 import { CompanyDashboard } from './components/company/CompanyDashboard';
@@ -9,6 +10,7 @@ import { ShieldCheck } from 'lucide-react';
 
 export const App: React.FC = () => {
   const { isAuthenticated, role } = useAuth();
+  const { t } = useI18n();
 
   // Écoute automatique des documents lourds transitant par le pont
   useEffect(() => {
@@ -40,13 +42,13 @@ export const App: React.FC = () => {
           <div className="flex items-center gap-2.5">
             <img src={`${import.meta.env.BASE_URL}logo.png`} alt="CruisePocket" className="w-[26px] h-[26px] object-contain" />
             <span className="font-bold text-slate-300">CruisePocket</span>
-            <span>• Plateforme Métier Médicale & Administrative des Gens de Mer</span>
+            <span>• {t('footer.official')}</span>
           </div>
 
           <div className="flex items-center gap-4 text-slate-400">
             <span className="flex items-center gap-1">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Conforme STCW & OMI</span>
+              <span>{t('footer.stcw')}</span>
             </span>
           </div>
         </div>

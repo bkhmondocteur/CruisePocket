@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useI18n } from '../../i18n/I18nContext';
 import { dataService } from '../../lib/supabase';
 import { calculateAge, validateMaritimeAge } from '../../utils/age';
 import { Civility, ContractType, Candidate, Doctor } from '../../types';
@@ -15,20 +16,21 @@ import {
   Calendar, 
   Ship, 
   Briefcase, 
-  Clock,
-  FileText,
-  Trash2,
-  Bell,
-  Archive,
-  ArchiveRestore,
-  X,
-  Stethoscope,
-  RotateCw
+  Clock, 
+  FileText, 
+  Trash2, 
+  Bell, 
+  Archive, 
+  ArchiveRestore, 
+  X, 
+  Stethoscope, 
+  RotateCw 
 } from 'lucide-react';
 import { CandidateFicheModal } from '../common/CandidateFicheModal';
 
 export const CompanyDashboard: React.FC = () => {
   const { companyProfile } = useAuth();
+  const { t, language } = useI18n();
   
   // Form State
   const [civility, setCivility] = useState<Civility>('M.');
@@ -338,23 +340,23 @@ export const CompanyDashboard: React.FC = () => {
     <div className="flex-1 max-w-7xl mx-auto w-full px-2.5 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-8">
       
       {/* Bannière d'accueil Espace Société */}
-      <div className="glass-panel rounded-2xl p-4 sm:p-6 border-l-4 border-maritime-500 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="glass-panel rounded-2xl p-4 sm:p-6 border-l-4 rtl:border-l-0 rtl:border-r-4 border-maritime-500 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-maritime-950 text-maritime-300 border border-maritime-800 mb-2">
             <Building2 className="w-3.5 h-3.5" />
-            Fournisseur Agréé Maritime
+            <span>{t('company.bannerRole')}</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-            Espace Société : {companyProfile?.name || 'Gestion Crewing'}
+            {t('company.bannerTitle', { name: companyProfile?.name || 'Crewing' })}
           </h2>
           <p className="text-slate-400 text-xs sm:text-sm mt-1">
-            Responsable : {companyProfile?.manager_name} | Localisation : {companyProfile?.location}
+            {t('company.manager', { name: companyProfile?.manager_name || '' })} | {t('company.location', { location: companyProfile?.location || '' })}
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <div className="bg-slate-900/90 border border-slate-800 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-center">
-            <div className="text-[11px] sm:text-xs text-slate-400">Dossiers transmis</div>
+            <div className="text-[11px] sm:text-xs text-slate-400">{t('company.transmittedCount')}</div>
             <div className="text-lg sm:text-xl font-bold text-cyan-400">{recentTransfers.length}</div>
           </div>
         </div>
@@ -436,14 +438,14 @@ export const CompanyDashboard: React.FC = () => {
             <div>
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <User className="w-5 h-5 text-cyan-400" />
-                Nouveau Dossier Marin / Candidat
+                <span>{t('company.formTitle')}</span>
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Remplissez les informations administratives du marin à transmettre au médecin
+                {t('company.formDesc')}
               </p>
             </div>
             <span className="text-[11px] font-medium text-slate-500 bg-slate-900 px-2 py-1 rounded-md border border-slate-800">
-              STCW / Maritime
+              {t('company.stcwTag')}
             </span>
           </div>
 
@@ -473,37 +475,37 @@ export const CompanyDashboard: React.FC = () => {
             {/* LIGNE 1 : Civilité, Nom, Prénom */}
             <div className="grid grid-cols-12 gap-3">
               <div className="col-span-12 sm:col-span-3">
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Civilité *</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">{t('company.civility')} *</label>
                 <select
                   value={civility}
                   onChange={(e) => setCivility(e.target.value as Civility)}
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-maritime-500"
                 >
-                  <option value="M.">M.</option>
-                  <option value="Mme">Mme</option>
-                  <option value="Autre">Autre</option>
+                  <option value="M.">{t('civility.M.')}</option>
+                  <option value="Mme">{t('civility.Mme')}</option>
+                  <option value="Autre">{t('civility.Autre')}</option>
                 </select>
               </div>
 
               <div className="col-span-12 sm:col-span-4">
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Nom de famille *</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">{t('company.lastName')}</label>
                 <input
                   type="text"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  placeholder="ex: DUPONT"
+                  placeholder="DUPONT"
                   required
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white uppercase placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-maritime-500"
                 />
               </div>
 
               <div className="col-span-12 sm:col-span-5">
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Prénom *</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">{t('company.firstName')}</label>
                 <input
                   type="text"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
-                  placeholder="ex: Thomas"
+                  placeholder="Thomas"
                   required
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-maritime-500"
                 />
@@ -515,7 +517,7 @@ export const CompanyDashboard: React.FC = () => {
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-cyan-400" />
-                  Date de naissance *
+                  <span>{t('company.birthDate')}</span>
                 </label>
                 <input
                   type="date"
@@ -531,16 +533,16 @@ export const CompanyDashboard: React.FC = () => {
               <div className="bg-slate-900/90 border border-slate-700/80 rounded-xl px-4 py-2 flex items-center justify-between">
                 <div>
                   <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
-                    Âge calculé automatiquement :
+                    {t('company.autoAge')}
                   </div>
                   <div className="text-xl font-extrabold text-white flex items-baseline gap-1 mt-0.5">
                     {calculatedAge !== null ? (
                       <>
                         <span className="text-cyan-300">{calculatedAge}</span>
-                        <span className="text-xs text-slate-400 font-normal">ans</span>
+                        <span className="text-xs text-slate-400 font-normal">{t('company.years')}</span>
                       </>
                     ) : (
-                      <span className="text-xs text-slate-500 font-normal italic">En attente de date...</span>
+                      <span className="text-xs text-slate-500 font-normal italic">--</span>
                     )}
                   </div>
                 </div>
@@ -551,7 +553,7 @@ export const CompanyDashboard: React.FC = () => {
                       ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' 
                       : 'bg-amber-950 text-amber-400 border border-amber-800'
                   }`}>
-                    {calculatedAge >= 18 ? 'Majeur STCW' : 'Mineur'}
+                    {calculatedAge >= 18 ? t('status.major') : t('status.minor')}
                   </span>
                 )}
               </div>
@@ -568,13 +570,13 @@ export const CompanyDashboard: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Numéro de passeport *
+                  {t('company.passportNumber')}
                 </label>
                 <input
                   type="text"
                   value={passportNumber}
                   onChange={(e) => setPassportNumber(e.target.value.toUpperCase())}
-                  placeholder="ex: 24FR98745"
+                  placeholder="24FR98745"
                   required
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-mono text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-maritime-500 uppercase"
                 />
@@ -583,7 +585,7 @@ export const CompanyDashboard: React.FC = () => {
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
                   <UploadCloud className="w-3.5 h-3.5 text-cyan-400" />
-                  Copie du passeport (PDF / Image)
+                  <span>{t('company.passportUpload')}</span>
                 </label>
                 <div className="relative">
                   <input
@@ -598,10 +600,10 @@ export const CompanyDashboard: React.FC = () => {
                     className="w-full cursor-pointer bg-slate-950 hover:bg-slate-900 border border-dashed border-slate-700 hover:border-maritime-500 rounded-xl px-3.5 py-2 text-xs text-slate-300 flex items-center justify-between transition-all"
                   >
                     <span className="truncate max-w-[180px]">
-                      {passportFile ? passportFile.name : 'Sélectionner un fichier...'}
+                      {passportFile ? passportFile.name : t('company.chooseFile')}
                     </span>
                     <span className="bg-slate-800 text-[10px] text-cyan-400 font-bold px-2 py-1 rounded">
-                      Parcourir
+                      ...
                     </span>
                   </label>
                 </div>
@@ -613,9 +615,8 @@ export const CompanyDashboard: React.FC = () => {
               <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
                   <Ship className="w-3.5 h-3.5 text-cyan-400" />
-                  Compagnie de croisière (Auto-complétion) *
+                  <span>{t('company.cruiseCompany')}</span>
                 </span>
-                <span className="text-[10px] text-slate-500 italic">S'auto-alimente si nouvelle</span>
               </label>
               
               <input
@@ -627,7 +628,7 @@ export const CompanyDashboard: React.FC = () => {
                     setShowSuggestions(true);
                   }
                 }}
-                placeholder="Nom de la compagnie maritime..."
+                placeholder="MSC, Costa, Royal Caribbean..."
                 required
                 className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-maritime-500"
               />
@@ -640,7 +641,7 @@ export const CompanyDashboard: React.FC = () => {
                       key={idx}
                       type="button"
                       onClick={() => selectSuggestion(item)}
-                      className="w-full text-left px-4 py-2 text-xs text-slate-200 hover:bg-maritime-600 hover:text-white transition-colors flex items-center justify-between"
+                      className="w-full text-left rtl:text-right px-4 py-2 text-xs text-slate-200 hover:bg-maritime-600 hover:text-white transition-colors flex items-center justify-between"
                     >
                       <span>{item}</span>
                       <Ship className="w-3 h-3 opacity-60" />
@@ -655,13 +656,13 @@ export const CompanyDashboard: React.FC = () => {
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
                   <Briefcase className="w-3.5 h-3.5 text-cyan-400" />
-                  Poste / Fonction à bord *
+                  <span>{t('company.position')}</span>
                 </label>
                 <input
                   type="text"
                   value={position}
                   onChange={(e) => setPosition(e.target.value)}
-                  placeholder="ex: Chef Mécanicien, Barman, Matelot..."
+                  placeholder="Officer, Cook, Waiter, Technician..."
                   required
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-maritime-500"
                 />
@@ -669,16 +670,16 @@ export const CompanyDashboard: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Type de contrat *
+                  {t('company.contractType')}
                 </label>
                 <select
                   value={contractType}
                   onChange={(e) => setContractType(e.target.value as ContractType)}
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-maritime-500"
                 >
-                  <option value="Nouveau contrat">Nouveau contrat</option>
-                  <option value="Contrat intermédiaire">Contrat intermédiaire</option>
-                  <option value="Renouvellement de contrat">Renouvellement de contrat</option>
+                  <option value="Nouveau contrat">{t('contract.Nouveau contrat')}</option>
+                  <option value="Contrat intermédiaire">{t('contract.Contrat intermédiaire')}</option>
+                  <option value="Renouvellement de contrat">{t('contract.Renouvellement de contrat')}</option>
                 </select>
               </div>
             </div>
@@ -687,7 +688,7 @@ export const CompanyDashboard: React.FC = () => {
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 text-cyan-400" />
-                Date prévue d'embarquement *
+                <span>{t('company.embarkationDate')}</span>
               </label>
               <input
                 type="date"
@@ -704,17 +705,17 @@ export const CompanyDashboard: React.FC = () => {
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-white flex items-center gap-1.5">
                   <Stethoscope className="w-4 h-4 text-emerald-400" />
-                  <span>Médecin Agréé Destinataire (Transmission en direct) *</span>
+                  <span>{t('company.recipientDoctor')}</span>
                 </label>
                 <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-950 px-2 py-0.5 rounded border border-emerald-800">
-                  Réception immédiate
+                  {t('company.immediateReceipt')}
                 </span>
               </div>
 
               {availableDoctors.length === 0 ? (
                 <div className="p-3 bg-amber-950/40 border border-amber-800 rounded-xl text-amber-300 text-xs flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
-                  <span>Aucun médecin agréé n'est enregistré pour le moment. Veuillez d'abord enregistrer un médecin dans le Keygen CruisePocket.</span>
+                  <span>{t('company.noDoctorAlert')}</span>
                 </div>
               ) : (
                 <>
@@ -724,10 +725,10 @@ export const CompanyDashboard: React.FC = () => {
                     required
                     className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
                   >
-                    <option value="">-- Sélectionnez le médecin destinataire --</option>
+                    <option value="">{t('company.selectDoctorPlaceholder')}</option>
                     {availableDoctors.map((doc) => (
                       <option key={doc.id} value={doc.id}>
-                        {doc.full_name} — {doc.practice_location} (Ordre: {doc.order_number})
+                        {doc.full_name} — {doc.practice_location} ({doc.order_number})
                       </option>
                     ))}
                   </select>
@@ -736,10 +737,10 @@ export const CompanyDashboard: React.FC = () => {
                     <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1">
                       <span className="flex items-center gap-1 text-emerald-300">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        Cabinet : <strong>{availableDoctors.find(d => d.id === selectedDoctorId)?.practice_location}</strong>
+                        <span>{availableDoctors.find(d => d.id === selectedDoctorId)?.practice_location}</span>
                       </span>
                       <span className="font-mono text-[10px] text-slate-500">
-                        N° Ordre : {availableDoctors.find(d => d.id === selectedDoctorId)?.order_number}
+                        N° : {availableDoctors.find(d => d.id === selectedDoctorId)?.order_number}
                       </span>
                     </div>
                   )}
@@ -758,8 +759,8 @@ export const CompanyDashboard: React.FC = () => {
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 ) : (
                   <>
-                    <Send className="w-4 h-4" />
-                    <span>Envoyer pour {availableDoctors.find(d => d.id === selectedDoctorId)?.full_name || 'le Médecin'}</span>
+                    <Send className="w-4 h-4 rtl:rotate-180" />
+                    <span>{t('company.sendButton', { name: availableDoctors.find(d => d.id === selectedDoctorId)?.full_name || t('header.doctor') })}</span>
                   </>
                 )}
               </button>
@@ -778,10 +779,10 @@ export const CompanyDashboard: React.FC = () => {
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-bold text-white flex items-center gap-2">
                   <FileCheck className="w-4 h-4 text-emerald-400" />
-                  Dossiers Transmis
+                  <span>{t('company.historyTitle')}</span>
                 </h3>
                 <span className="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full font-mono">
-                  {recentTransfers.length} total
+                  {recentTransfers.length} {t('company.total')}
                 </span>
                 <button
                   type="button"
@@ -790,7 +791,7 @@ export const CompanyDashboard: React.FC = () => {
                     loadCruiseCompanies();
                   }}
                   className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all cursor-pointer group"
-                  title="Actualiser instantanément les dossiers transmis"
+                  title={t('header.refresh')}
                 >
                   <RotateCw className="w-3.5 h-3.5 text-cyan-400 group-hover:rotate-180 transition-transform" />
                 </button>
@@ -807,7 +808,7 @@ export const CompanyDashboard: React.FC = () => {
                       : 'text-slate-400 hover:text-white'
                   }`}
                 >
-                  <span>Dossiers Actifs</span>
+                  <span>{t('company.activeTab')}</span>
                   <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-900 text-slate-300">
                     {recentTransfers.filter(c => !c.is_archived).length}
                   </span>
@@ -823,7 +824,7 @@ export const CompanyDashboard: React.FC = () => {
                   }`}
                 >
                   <Archive className="w-3 h-3 text-purple-400" />
-                  <span>Archivés (&gt; 1 mois)</span>
+                  <span>{t('company.archivedTab')}</span>
                   <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-purple-950 text-purple-300 border border-purple-800">
                     {recentTransfers.filter(c => Boolean(c.is_archived)).length}
                   </span>
@@ -834,11 +835,11 @@ export const CompanyDashboard: React.FC = () => {
             {recentTransfers.filter(c => transferTab === 'actifs' ? !c.is_archived : Boolean(c.is_archived)).length === 0 ? (
               <div className="py-8 text-center text-slate-500 text-xs">
                 {transferTab === 'actifs' 
-                  ? "Aucun dossier actif pour le moment." 
-                  : "Aucun dossier de plus d'un mois archivé."}
+                  ? t('company.noActive')
+                  : t('company.noArchived')}
               </div>
             ) : (
-              <div className="space-y-3 max-h-[580px] overflow-y-auto pr-1">
+              <div className="space-y-3 max-h-[580px] overflow-y-auto pr-1 rtl:pr-0 rtl:pl-1">
                 {recentTransfers
                   .filter(c => transferTab === 'actifs' ? !c.is_archived : Boolean(c.is_archived))
                   .map((cand) => (
@@ -859,7 +860,7 @@ export const CompanyDashboard: React.FC = () => {
                               ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
                               : 'bg-slate-900 border-slate-800 text-slate-300'
                           }`}>
-                            {cand.contract_type}
+                            {t('contract.' + cand.contract_type)}
                           </span>
                         </div>
                       </div>
@@ -870,27 +871,27 @@ export const CompanyDashboard: React.FC = () => {
                           ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
                           : 'bg-amber-950 text-amber-400 border border-amber-800 animate-pulse'
                       }`}>
-                        {cand.medical_status}
+                        {t('status.' + cand.medical_status)}
                       </span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-900 text-[11px] text-slate-400">
                       <div>
-                        <span className="text-slate-500">Passeport: </span>
+                        <span className="text-slate-500">{t('fiche.passport')} </span>
                         <span className="font-mono text-cyan-400 font-semibold">{cand.passport_number}</span>
                       </div>
                       <div>
-                        <span className="text-slate-500">Âge: </span>
-                        <span className="text-slate-300 font-semibold">{cand.age} ans</span>
+                        <span className="text-slate-500">{t('fiche.age')} </span>
+                        <span className="text-slate-300 font-semibold">{cand.age} {t('company.years')}</span>
                       </div>
                       <div>
-                        <span className="text-slate-500">Embarquement: </span>
+                        <span className="text-slate-500">{t('fiche.embarkation')} </span>
                         <span className="text-slate-300">{cand.embarkation_date}</span>
                       </div>
                       <div>
-                        <span className="text-slate-500">Paiement: </span>
+                        <span className="text-slate-500">{t('fiche.statusFinancial')} </span>
                         <span className={cand.financial_status === 'Payé' ? 'text-emerald-400 font-semibold' : 'text-slate-400'}>
-                          {cand.financial_status} ({cand.financial_amount} DT)
+                          {t('status.' + cand.financial_status)} ({cand.financial_amount} DT)
                         </span>
                       </div>
                     </div>
@@ -899,7 +900,7 @@ export const CompanyDashboard: React.FC = () => {
                     <div className="pt-1.5 border-t border-slate-900/80 space-y-1.5">
                       <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
                         <Stethoscope className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        <span>Destinataire : <strong className="text-emerald-300">{cand.doctor_name || 'Non assigné'}</strong></span>
+                        <span>{t('doctor.badge')} : <strong className="text-emerald-300">{cand.doctor_name || '--'}</strong></span>
                       </div>
 
                       {/* Statut Réception / Consultation en temps réel */}
@@ -907,21 +908,29 @@ export const CompanyDashboard: React.FC = () => {
                         <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-950/70 border border-emerald-700/60 text-[11px] text-emerald-300">
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                           <span>
-                            <strong>Accusé de consultation :</strong> Dossier ouvert et consulté par {cand.doctor_consulted_by || cand.doctor_name || 'le Médecin'} le {new Date(cand.doctor_consulted_at).toLocaleDateString('fr-FR')} à {new Date(cand.doctor_consulted_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                            {t('company.receiptConsulted', {
+                              doctor: cand.doctor_consulted_by || cand.doctor_name || t('header.doctor'),
+                              date: new Date(cand.doctor_consulted_at).toLocaleDateString(language === 'ar' ? 'ar-TN' : language === 'en' ? 'en-US' : 'fr-FR'),
+                              time: new Date(cand.doctor_consulted_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                            })}
                           </span>
                         </div>
                       ) : cand.doctor_received_at ? (
                         <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-cyan-950/60 border border-cyan-800/60 text-[11px] text-cyan-300">
                           <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
                           <span>
-                            <strong>Reçu dans l'application :</strong> Le {cand.doctor_name || 'Médecin'} a ouvert son espace le {new Date(cand.doctor_received_at).toLocaleDateString('fr-FR')} à {new Date(cand.doctor_received_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} (en attente de consultation de la fiche)
+                            {t('company.receiptReceived', {
+                              doctor: cand.doctor_name || t('header.doctor'),
+                              date: new Date(cand.doctor_received_at).toLocaleDateString(language === 'ar' ? 'ar-TN' : language === 'en' ? 'en-US' : 'fr-FR'),
+                              time: new Date(cand.doctor_received_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                            })}
                           </span>
                         </div>
                       ) : (
                         <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800 text-[11px] text-slate-400">
                           <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0 animate-pulse" />
                           <span>
-                            <strong>Transmis :</strong> En attente d'ouverture par {cand.doctor_name || 'le Médecin'}
+                            {t('company.receiptPending', { doctor: cand.doctor_name || t('header.doctor') })}
                           </span>
                         </div>
                       )}
@@ -932,30 +941,30 @@ export const CompanyDashboard: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => handleDeleteCandidate(cand)}
-                        className="text-[10px] text-slate-500 hover:text-rose-400 flex items-center gap-1 font-semibold transition-colors group"
-                        title="Supprimer ce dossier et notifier le médecin"
+                        className="text-[10px] text-slate-500 hover:text-rose-400 flex items-center gap-1 font-semibold transition-colors group cursor-pointer"
+                        title={t('company.delete')}
                       >
                         <Trash2 className="w-3 h-3 group-hover:scale-110 transition-transform" />
-                        <span>Supprimer</span>
+                        <span>{t('company.delete')}</span>
                       </button>
 
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
                           onClick={() => setSelectedFicheCandidate(cand)}
-                          className="text-[10px] text-cyan-400 hover:text-cyan-300 hover:underline flex items-center gap-1 font-semibold"
-                          title={cand.is_archived ? "Ouvrir la fiche archivée (récupération instantanée)" : "Ouvrir la fiche complète"}
+                          className="text-[10px] text-cyan-400 hover:text-cyan-300 hover:underline flex items-center gap-1 font-semibold cursor-pointer"
+                          title={cand.is_archived ? t('company.openArchive') : t('company.openFiche')}
                         >
                           {cand.is_archived ? <ArchiveRestore className="w-3 h-3 text-amber-400" /> : <FileText className="w-3 h-3" />}
-                          <span>{cand.is_archived ? 'Ouvrir (Archive)' : 'Fiche Candidat'}</span>
+                          <span>{cand.is_archived ? t('company.openArchive') : t('company.openFiche')}</span>
                         </button>
 
                         <button
                           type="button"
                           onClick={() => setSelectedPassportCandidate(cand)}
-                          className="text-[10px] text-slate-400 hover:text-slate-200 hover:underline flex items-center gap-1"
+                          className="text-[10px] text-slate-400 hover:text-slate-200 hover:underline flex items-center gap-1 cursor-pointer"
                         >
-                          <span>Passeport</span>
+                          <span>{t('fiche.passport')}</span>
                         </button>
                       </div>
                     </div>

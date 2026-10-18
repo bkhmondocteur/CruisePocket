@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { backupService } from '../../lib/backupService';
 import { BackupSlotInfo } from '../../types';
+import { useI18n } from '../../i18n/I18nContext';
 import { 
   Database, 
   Download, 
@@ -21,6 +22,7 @@ interface BackupModalProps {
 }
 
 export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => {
+  const { t } = useI18n();
   const [folderName, setFolderName] = useState<string | null>(null);
   const [slots, setSlots] = useState<BackupSlotInfo[]>([]);
   const [currentSlot, setCurrentSlot] = useState<number>(0);
@@ -130,17 +132,17 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
             </div>
             <div className="min-w-0">
               <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2 truncate">
-                <span>Gestion des Sauvegardes</span>
+                <span>{t('backup.title')}</span>
               </h3>
               <p className="text-[11px] sm:text-xs text-slate-400 truncate">
-                5 fichiers rotatifs & Restauration sécurisée
+                {t('backup.subtitle')}
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-1.5 sm:p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors shrink-0"
+            className="p-1.5 sm:p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -171,10 +173,10 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
               <div>
                 <div className="flex items-center gap-2">
                   <RotateCw className="w-4 h-4 text-cyan-400" />
-                  <h4 className="font-bold text-white text-sm">Sauvegarde Automatique à Chaque Modification</h4>
+                  <h4 className="font-bold text-white text-sm">{t('backup.autoTitle')}</h4>
                 </div>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  5 fichiers rotatifs dans votre dossier local : <strong>le 6ème écrase le 1er</strong>.
+                  {t('backup.autoDesc')}
                 </p>
               </div>
 
@@ -182,33 +184,33 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
                 type="button"
                 onClick={handleSelectFolder}
                 disabled={isProcessing}
-                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-maritime-600 hover:from-cyan-500 hover:to-maritime-500 text-white font-bold text-xs flex items-center gap-2 shadow-md transition-all shrink-0"
+                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-maritime-600 hover:from-cyan-500 hover:to-maritime-500 text-white font-bold text-xs flex items-center gap-2 shadow-md transition-all shrink-0 cursor-pointer"
               >
                 {folderName ? <FolderCheck className="w-4 h-4 text-emerald-300" /> : <FolderPlus className="w-4 h-4" />}
-                <span>{folderName ? 'Changer de dossier' : 'Choisir le dossier'}</span>
+                <span>{folderName ? t('backup.changeFolder') : t('backup.linkFolder')}</span>
               </button>
             </div>
 
             {/* Dossier Actif */}
             <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between text-xs">
-              <span className="text-slate-400">Dossier cible local :</span>
+              <span className="text-slate-400">{t('backup.linkFolder')} :</span>
               {folderName ? (
                 <span className="font-mono font-bold text-emerald-400 bg-emerald-950/60 px-2.5 py-1 rounded-lg border border-emerald-800/60 flex items-center gap-1.5">
                   <FolderCheck className="w-3.5 h-3.5" />
                   📁 {folderName}
                 </span>
               ) : (
-                <span className="text-amber-400 font-medium">Aucun dossier choisi (sauvegarde assurée dans le cache local)</span>
+                <span className="text-amber-400 font-medium">{t('backup.noFolder')}</span>
               )}
             </div>
 
             {/* Liste des 5 slots tournants */}
             <div className="space-y-2 pt-2 border-t border-slate-900">
               <div className="text-[11px] font-semibold text-slate-400 flex items-center justify-between">
-                <span>Historique des 5 fichiers rotatifs (FIFO) :</span>
+                <span>5 Slots FIFO</span>
                 {currentSlot > 0 && (
                   <span className="text-cyan-400 font-mono text-[10px]">
-                    Dernière écriture : Slot {currentSlot}/5
+                    Slot {currentSlot}/5
                   </span>
                 )}
               </div>
@@ -230,7 +232,7 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
                       }`}
                     >
                       <div className="flex items-center justify-between text-[10px] font-mono font-bold mb-1">
-                        <span>Fichier {s.slot}</span>
+                        <span>Slot {s.slot}</span>
                         {isActive && (
                           <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
                         )}
@@ -240,7 +242,7 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
                       </div>
                       <div className="text-[9px] text-slate-400 mt-1 flex items-center justify-center gap-1">
                         <Clock className="w-2.5 h-2.5" />
-                        <span>{s.timestamp ? new Date(s.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : 'En attente'}</span>
+                        <span>{s.timestamp ? new Date(s.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '-'}</span>
                       </div>
                     </div>
                   );
@@ -258,10 +260,10 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
               <div>
                 <h5 className="font-bold text-white text-xs flex items-center gap-1.5">
                   <Download className="w-4 h-4 text-emerald-400" />
-                  <span>Bouton de Sauvegarde Manuelle</span>
+                  <span>{t('backup.manualTitle')}</span>
                 </h5>
                 <p className="text-[11px] text-slate-400 mt-1">
-                  Téléchargez instantanément une copie complète de tous les dossiers marins, devises en DT, et documents au format JSON.
+                  {t('backup.manualDesc')}
                 </p>
               </div>
 
@@ -269,10 +271,10 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
                 type="button"
                 onClick={handleExportManual}
                 disabled={isProcessing}
-                className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-emerald-500/60 text-emerald-400 hover:text-emerald-300 font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm"
+                className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-emerald-500/60 text-emerald-400 hover:text-emerald-300 font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer"
               >
                 <Download className="w-4 h-4" />
-                <span>Sauvegarder Maintenant</span>
+                <span>{t('backup.downloadNow')}</span>
               </button>
             </div>
 
@@ -281,10 +283,10 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
               <div>
                 <h5 className="font-bold text-white text-xs flex items-center gap-1.5">
                   <Upload className="w-4 h-4 text-amber-400" />
-                  <span>Bouton de Restauration</span>
+                  <span>{t('backup.restoreTitle')}</span>
                 </h5>
                 <p className="text-[11px] text-slate-400 mt-1">
-                  Importez un fichier de sauvegarde pour restaurer l'intégralité de vos données instantanément.
+                  {t('backup.restoreDesc')}
                 </p>
               </div>
 
@@ -300,10 +302,10 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isProcessing}
-                  className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-amber-500/60 text-amber-400 hover:text-amber-300 font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm"
+                  className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-amber-500/60 text-amber-400 hover:text-amber-300 font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer"
                 >
                   <Upload className="w-4 h-4" />
-                  <span>Restaurer une Sauvegarde</span>
+                  <span>{t('backup.restoreBtn')}</span>
                 </button>
               </div>
             </div>
@@ -314,7 +316,7 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
           <div className="p-3.5 rounded-xl bg-slate-900/50 border border-slate-800 text-[11px] text-slate-400 flex items-start gap-2.5">
             <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
             <p className="leading-relaxed">
-              <strong>Stockage & Pont Firestore :</strong> Les copies de passeports et documents volumineux ne saturent pas Firestore (utilisé uniquement en pont éphémère). Ils sont sécurisés localement dans IndexedDB et automatiquement inclus dans vos exports de sauvegarde.
+              {t('backup.bridgeNote')}
             </p>
           </div>
 
@@ -325,9 +327,9 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 font-semibold text-xs transition-colors"
+            className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 font-semibold text-xs transition-colors cursor-pointer"
           >
-            Fermer
+            {t('backup.close')}
           </button>
         </div>
 
