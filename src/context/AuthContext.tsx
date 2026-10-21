@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Role, Doctor, ServiceCompany } from '../types';
 import { validateLicense } from '../utils/license';
+import { firebaseSyncService } from '../lib/firebase';
 
 interface AuthSession {
   role: Role;
@@ -16,6 +17,7 @@ interface AuthContextType {
   companyProfile: ServiceCompany | null;
   isAuthenticated: boolean;
   loginWithLicense: (key: string, expectedRole?: Role) => { success: boolean; error?: string };
+  updateCompanyLogo: (logoUrl: string | null) => Promise<void>;
   logout: () => void;
   selectRole: (role: Role) => void;
   targetRole: Role | null;
@@ -55,7 +57,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (session.role === 'medecin') {
               setDoctorProfile((validation.profile as Doctor) || session.doctorProfile || null);
             } else {
-              setCompanyProfile((validation.profile as ServiceCompany) || session.companyProfile || null);
+              const comp = (validation.profile as ServiceCompany) || session.companyProfile || null;
+              if (comp) {
+                const savedLogo = localStorage.getItem(`cruisepocket_company_logo_${comp.id}`) || comp.logo_url;
+                if (savedLogo) {
+                  comp.logo_url = savedLogo;
+                }
+              }
+              setCompanyProfile(comp);
             }
             sessionStorage.setItem(AUTH_STORAGE_KEY, saved);
           }
@@ -90,6 +99,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       session.doctorProfile = doc;
     } else {
       const comp = validation.profile as ServiceCompany;
+      const savedLogo = localStorage.getItem(`cruisepocket_company_logo_${comp.id}`) || comp.logo_url;
+      if (savedLogo) {
+        comp.logo_url = savedLogo;
+      }
       setCompanyProfile(comp);
       setDoctorProfile(null);
       session.companyProfile = comp;
@@ -104,6 +117,85 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     return { success: true };
+  };
+
+  const updateCompanyLogo = async (logoUrl: string | null): Promise<void> => {
+    if (!companyProfile) return;
+
+    const updatedCompany: ServiceCompany = {
+      ...companyProfile,
+      logo_url: logoUrl || undefined
+    };
+
+    setCompanyProfile(updatedCompany);
+
+    // 1. Sauvegarde dédiée au logo dans localStorage pour persistance immédiate
+    const logoStorageKey = `cruisepocket_company_logo_${companyProfile.id}`;
+    if (logoUrl) {
+      localStorage.setItem(logoStorageKey, logoUrl);
+    } else {
+      localStorage.removeItem(logoStorageKey);
+    }
+
+    // 2. Mettre à jour la session courante
+    try {
+      const saved = sessionStorage.getItem(AUTH_STORAGE_KEY) || localStorage.getItem(AUTH_STORAGE_KEY);
+      if (saved) {
+        const session: AuthSession = JSON.parse(saved);
+        session.companyProfile = updatedCompany;
+        const serialized = JSON.stringify(session);
+        sessionStorage.setItem(AUTH_STORAGE_KEY, serialized);
+        localStorage.setItem(AUTH_STORAGE_KEY, serialized);
+      }
+    } catch (e) {
+      console.warn('Erreur mise à jour session:', e);
+    }
+
+    // 3. Mettre à jour le registre local des licences
+    try {
+      const rawReg = localStorage.getItem('cruisepocket_license_registry');
+      if (rawReg) {
+        const parsed = JSON.parse(rawReg);
+        if (parsed.companies && companyProfile.license_key) {
+          const keyUpper = companyProfile.license_key.toUpperCase();
+          if (parsed.companies[keyUpper]) {
+            parsed.companies[keyUpper].logo_url = logoUrl || undefined;
+            localStorage.setItem('cruisepocket_license_registry', JSON.stringify(parsed));
+          }
+        }
+      }
+
+      const rawLicenses = localStorage.getItem('cruisepocket_registered_licenses');
+      if (rawLicenses) {
+        const list = JSON.parse(rawLicenses);
+        if (Array.isArray(list)) {
+          const idx = list.findIndex((item: any) => item.key?.toUpperCase() === companyProfile.license_key.toUpperCase());
+          if (idx >= 0) {
+            list[idx].logo_url = logoUrl || undefined;
+            localStorage.setItem('cruisepocket_registered_licenses', JSON.stringify(list));
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Erreur mise à jour registre:', e);
+    }
+
+    // 4. Synchronisation Cloud Firebase si en ligne
+    try {
+      if (companyProfile.license_key) {
+        await firebaseSyncService.saveLicense({
+          key: companyProfile.license_key,
+          role: 'societe',
+          holderName: companyProfile.name,
+          detail1: companyProfile.manager_name,
+          detail2: companyProfile.phone,
+          location: companyProfile.location,
+          profile: updatedCompany
+        });
+      }
+    } catch (err) {
+      console.warn('[Firebase] Synchronisation logo ignorée (mode hors-ligne):', err);
+    }
   };
 
   const logout = () => {
@@ -144,6 +236,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         companyProfile,
         isAuthenticated: Boolean(role && licenseKey),
         loginWithLicense,
+        updateCompanyLogo,
         logout,
         selectRole,
         targetRole,

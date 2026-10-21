@@ -201,8 +201,16 @@ export const Header: React.FC = () => {
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 text-xs">
-                    <div className="w-6 h-6 rounded-lg bg-maritime-500/20 text-maritime-400 flex items-center justify-center shrink-0">
-                      <Building2 className="w-3.5 h-3.5" />
+                    <div className="w-6 h-6 rounded-lg bg-maritime-500/20 text-maritime-400 flex items-center justify-center shrink-0 overflow-hidden border border-slate-700/60">
+                      {companyProfile?.logo_url ? (
+                        <img 
+                          src={companyProfile.logo_url} 
+                          alt={companyProfile.name}
+                          className="w-full h-full object-contain p-0.5"
+                        />
+                      ) : (
+                        <Building2 className="w-3.5 h-3.5" />
+                      )}
                     </div>
                     <div className="text-left rtl:text-right hidden sm:block">
                       <div className="font-semibold text-slate-200 truncate max-w-[140px]">

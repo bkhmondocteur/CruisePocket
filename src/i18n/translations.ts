@@ -115,6 +115,11 @@ export const translations: Record<Language, Record<string, string>> = {
     'company.openArchive': 'Ouvrir (Archive)',
     'company.delete': 'Supprimer',
     'company.deleteConfirm': 'Êtes-vous sûr de vouloir supprimer définitivement le dossier de {name} ?',
+    'company.uploadLogo': 'Ajouter un logo',
+    'company.changeLogo': 'Changer le logo',
+    'company.removeLogo': 'Supprimer le logo',
+    'company.logoHint': 'Logo officiel (PNG, JPG, SVG, WebP)',
+    'company.logoSuccess': 'Logo de la société mis à jour avec élégance !',
 
     // Doctor Dashboard
     'doctor.badge': 'Médecin Agréé Maritime',
@@ -315,6 +320,11 @@ export const translations: Record<Language, Record<string, string>> = {
     'company.openArchive': 'Open (Archive)',
     'company.delete': 'Delete',
     'company.deleteConfirm': 'Are you sure you want to permanently delete the file of {name}?',
+    'company.uploadLogo': 'Upload logo',
+    'company.changeLogo': 'Change logo',
+    'company.removeLogo': 'Remove logo',
+    'company.logoHint': 'Official logo (PNG, JPG, SVG, WebP)',
+    'company.logoSuccess': 'Company logo updated with elegance!',
 
     // Doctor Dashboard
     'doctor.badge': 'Approved Maritime Doctor',
@@ -515,6 +525,11 @@ export const translations: Record<Language, Record<string, string>> = {
     'company.openArchive': 'فتح (أرشيف)',
     'company.delete': 'حذف',
     'company.deleteConfirm': 'هل أنت متأكد من رغبتك في حذف ملف {name} نهائيًا؟',
+    'company.uploadLogo': 'إضافة شعار',
+    'company.changeLogo': 'تغيير الشعار',
+    'company.removeLogo': 'حذف الشعار',
+    'company.logoHint': 'الشعار الرسمي (PNG, JPG, SVG, WebP)',
+    'company.logoSuccess': 'تم تحديث شعار الشركة بنجاح وأناقة!',
 
     // Doctor Dashboard
     'doctor.badge': 'طبيب بحري معتمد',

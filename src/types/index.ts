@@ -74,6 +74,7 @@ export interface ServiceCompany {
   phone: string;
   location: string;
   license_key: string;
+  logo_url?: string;
   created_at?: string;
 }
 

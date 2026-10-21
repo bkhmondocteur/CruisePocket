@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useI18n } from '../../i18n/I18nContext';
 import { dataService } from '../../lib/supabase';
@@ -24,12 +24,13 @@ import {
   ArchiveRestore, 
   X, 
   Stethoscope, 
-  RotateCw 
+  RotateCw,
+  Camera
 } from 'lucide-react';
 import { CandidateFicheModal } from '../common/CandidateFicheModal';
 
 export const CompanyDashboard: React.FC = () => {
-  const { companyProfile } = useAuth();
+  const { companyProfile, updateCompanyLogo } = useAuth();
   const { t, language } = useI18n();
   
   // Form State
@@ -79,6 +80,103 @@ export const CompanyDashboard: React.FC = () => {
   // Modal fiche candidat & Passeport
   const [selectedFicheCandidate, setSelectedFicheCandidate] = useState<Candidate | null>(null);
   const [selectedPassportCandidate, setSelectedPassportCandidate] = useState<Candidate | null>(null);
+
+  // Logo upload state & ref
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+
+  const processLogoImage = (file: File): Promise<string> => {
+    if (file.type === 'image/svg+xml' || file.name.toLowerCase().endsWith('.svg')) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const MAX_SIZE = 512;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_SIZE) {
+              height = Math.round((height * MAX_SIZE) / width);
+              width = MAX_SIZE;
+            }
+          } else {
+            if (height > MAX_SIZE) {
+              width = Math.round((width * MAX_SIZE) / height);
+              height = MAX_SIZE;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.clearRect(0, 0, width, height);
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/png', 0.95));
+          } else {
+            resolve(e.target?.result as string);
+          }
+        };
+        img.onerror = reject;
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleTriggerLogoUpload = () => {
+    logoInputRef.current?.click();
+  };
+
+  const handleLogoFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Le logo sélectionné est trop volumineux (maximum 5 Mo).");
+      if (logoInputRef.current) logoInputRef.current.value = '';
+      return;
+    }
+
+    setIsUploadingLogo(true);
+    setErrorMessage(null);
+    try {
+      const optimized = await processLogoImage(file);
+      await updateCompanyLogo(optimized);
+      setSuccessMessage(t('company.logoSuccess'));
+      setTimeout(() => setSuccessMessage(null), 4000);
+    } catch (err) {
+      console.error('Erreur traitement logo:', err);
+      setErrorMessage("Erreur lors de l'enregistrement du logo.");
+    } finally {
+      setIsUploadingLogo(false);
+      if (logoInputRef.current) logoInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveLogo = async () => {
+    const confirmRemove = window.confirm("Êtes-vous sûr de vouloir retirer le logo de votre société ?");
+    if (!confirmRemove) return;
+    try {
+      await updateCompanyLogo(null);
+      setSuccessMessage("Logo retiré avec succès.");
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err) {
+      console.error('Erreur suppression logo:', err);
+    }
+  };
 
   const fileToDataUrl = (file: File): Promise<string> => {
     // Si c'est un PDF, lecture brute sans altération
@@ -339,22 +437,93 @@ export const CompanyDashboard: React.FC = () => {
   return (
     <div className="flex-1 max-w-7xl mx-auto w-full px-2.5 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-8">
       
-      {/* Bannière d'accueil Espace Société */}
-      <div className="glass-panel rounded-2xl p-4 sm:p-6 border-l-4 rtl:border-l-0 rtl:border-r-4 border-maritime-500 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-maritime-950 text-maritime-300 border border-maritime-800 mb-2">
-            <Building2 className="w-3.5 h-3.5" />
-            <span>{t('company.bannerRole')}</span>
+      {/* Bannière d'accueil Espace Société avec Logo Élégant */}
+      <div className="glass-panel rounded-2xl p-4 sm:p-6 border-l-4 rtl:border-l-0 rtl:border-r-4 border-maritime-500 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-5 relative overflow-hidden">
+        {/* Lueur subtile en arrière-plan */}
+        <div className="absolute -top-16 -left-16 rtl:-left-auto rtl:-right-16 w-48 h-48 bg-maritime-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 z-10">
+          {/* Cadre Logo Élégant & Interactif */}
+          <div className="relative group shrink-0">
+            <div
+              onClick={handleTriggerLogoUpload}
+              className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border-2 transition-all duration-300 flex items-center justify-center overflow-hidden cursor-pointer shadow-lg backdrop-blur-md relative ${
+                companyProfile?.logo_url
+                  ? 'bg-slate-900/90 border-slate-700/80 hover:border-cyan-400 shadow-cyan-950/20'
+                  : 'bg-slate-950/80 border-dashed border-slate-700 hover:border-cyan-400 hover:bg-slate-900/80 shadow-slate-950/40'
+              } ${isUploadingLogo ? 'animate-pulse opacity-70' : ''}`}
+              title={companyProfile?.logo_url ? t('company.changeLogo') : t('company.uploadLogo')}
+            >
+              {companyProfile?.logo_url ? (
+                <img
+                  src={companyProfile.logo_url}
+                  alt={companyProfile.name}
+                  className="w-full h-full object-contain p-2 transition-transform duration-300 group-hover:scale-105"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center p-2 text-center text-slate-400 group-hover:text-cyan-300 transition-colors">
+                  <div className="w-8 h-8 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-center mb-1 group-hover:border-cyan-500/50 group-hover:bg-cyan-950/40">
+                    <Building2 className="w-4 h-4 text-slate-400 group-hover:text-cyan-400 transition-colors" />
+                  </div>
+                  <span className="text-[9px] font-bold tracking-tight uppercase text-slate-400 group-hover:text-cyan-300">
+                    {t('company.uploadLogo')}
+                  </span>
+                </div>
+              )}
+
+              {/* Overlay au survol */}
+              <div className="absolute inset-0 bg-slate-950/80 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center text-white p-1 text-center backdrop-blur-xs">
+                <Camera className="w-5 h-5 text-cyan-400 mb-0.5" />
+                <span className="text-[9px] font-bold text-slate-200 leading-tight">
+                  {companyProfile?.logo_url ? t('company.changeLogo') : t('company.uploadLogo')}
+                </span>
+              </div>
+            </div>
+
+            {/* Bouton de suppression discret si un logo est défini */}
+            {companyProfile?.logo_url && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRemoveLogo();
+                }}
+                className="absolute -top-1.5 -right-1.5 rtl:-right-auto rtl:-left-1.5 w-6 h-6 rounded-full bg-slate-900 hover:bg-rose-950 border border-slate-700 hover:border-rose-500 text-slate-400 hover:text-rose-300 flex items-center justify-center shadow-md transition-all cursor-pointer z-20"
+                title={t('company.removeLogo')}
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            {/* Input fichier caché pour le logo */}
+            <input
+              type="file"
+              ref={logoInputRef}
+              onChange={handleLogoFileSelected}
+              accept="image/png,image/jpeg,image/webp,image/svg+xml"
+              className="hidden"
+            />
           </div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-            {t('company.bannerTitle', { name: companyProfile?.name || 'Crewing' })}
-          </h2>
-          <p className="text-slate-400 text-xs sm:text-sm mt-1">
-            {t('company.manager', { name: companyProfile?.manager_name || '' })} | {t('company.location', { location: companyProfile?.location || '' })}
-          </p>
+
+          {/* Textes de la Société */}
+          <div>
+            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-maritime-950 text-maritime-300 border border-maritime-800 mb-2">
+              <Building2 className="w-3.5 h-3.5" />
+              <span>{t('company.bannerRole')}</span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+              {t('company.bannerTitle', { name: companyProfile?.name || 'Crewing' })}
+            </h2>
+            <p className="text-slate-400 text-xs sm:text-sm mt-1">
+              {t('company.manager', { name: companyProfile?.manager_name || '' })} | {t('company.location', { location: companyProfile?.location || '' })}
+            </p>
+            <div className="mt-1.5 flex items-center gap-2 text-[11px] text-slate-500">
+              <span className="font-mono text-cyan-400/80">{companyProfile?.license_key}</span>
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 z-10 self-start sm:self-auto">
           <div className="bg-slate-900/90 border border-slate-800 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-center">
             <div className="text-[11px] sm:text-xs text-slate-400">{t('company.transmittedCount')}</div>
             <div className="text-lg sm:text-xl font-bold text-cyan-400">{recentTransfers.length}</div>
